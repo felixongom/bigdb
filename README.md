@@ -103,7 +103,7 @@ post.find().sort({id:1}).get()
 post.find().limit(5).get() 
 //it retuns 5 documents
 
-post.find().sort(id:-1).limit(5).get() 
+post.find().sort({id:-1}).limit(5).get() 
 /*it retuns 5 documents sorted in 
 descending order basing on id 
 */
@@ -111,8 +111,8 @@ descending order basing on id
 **The sort() and limit() have ***no orders*** in which they are called** like in mongodb.
 
 ```js
-post.find().sort(id:-1).limit(5).get() 
-post.find().limit(5).sort(id:-1).get() 
+post.find().sort({id:-1}).limit(5).get() 
+post.find().limit(5).sort({id:-1}).get() 
 //the result for the above are the same
 ```
 
