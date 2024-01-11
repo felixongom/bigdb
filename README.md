@@ -8,7 +8,7 @@ It can help alot when building a small application, but for larger project, i wo
 ##### Usage.
 Install with npm i litebd
 ```js
-conts Litedb = require('litedb)
+conts {Litedb} = require('litedb)
 ```
 To create new document, for example post, you first parameter as thr name of the collection and optionally you can pass true or false (boolean) to the second agument of the constructor.This spacifies wheather you want to kep your collection in one file or ecach file for each collection.
 
