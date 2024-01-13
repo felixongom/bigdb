@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const readline = require('readline');
+
 
 // make directory
 const mkdir = (folder) => {
@@ -8,6 +10,7 @@ const mkdir = (folder) => {
   }
   return folder;
 };
+
 
 //
 const mkDir = (upload_path) => {
@@ -90,7 +93,7 @@ class Litedb {
     this.#db_collection = this.#db_collection.map((rec) =>
       rec.id === id ? { ...found, ...record } : rec
     );
-    this.save(false);
+    this.#save(false);
 
     return { ...found, ...record };
   }
@@ -121,7 +124,7 @@ class Litedb {
   // delet a record by id
   delete(id) {
     this.#db_collection = this.#db_collection.filter((rec) => rec.id !== id);
-    this.save(false);
+    this.#save(false);
     return (this.#db_collection = this.#db_collection.find(
       (rec) => rec.id === id
     ));
@@ -134,7 +137,7 @@ class Litedb {
       this.#db_collection = this.#db_collection.filter(
         (rec) => rec.id !== found.id
       );
-      this.save(false);
+      this.#save(false);
     }
     return found || {};
   }
@@ -147,7 +150,7 @@ class Litedb {
         this.#db_collection = this.#db_collection.filter(
           (rec) => rec.id !== one_found.id
         );
-        this.save(false);
+        this.#save(false);
       }
     }
   }
@@ -204,7 +207,7 @@ class Litedb {
       record.updatedAt = new Date().toISOString();
       //
       this.#db_collection.push(record);
-      this.save(true);
+      this.#save(true);
   }
   // sorting result in assending or descending order
   sort(criteria = {}) {
@@ -516,8 +519,8 @@ class Litedb {
 
     return keys.length > 0 ? true : false;
   }
-  // save method that write to db
-  save(inc) {
+  // #save method that write to db
+  #save(inc) {
     this.#db[this.#input_field] = this.#db_collection;
     this.#db["_" + this.#input_field] = this.#incid + (inc === true ? 1 : 0);
     // let path = this.#db_path+(this.#many_files?this.#input_field:'.json')
@@ -540,6 +543,7 @@ class Litedb {
   }
 }
 
+new Litedb ('post').create([{name:'tom'}])
 module.exports = {
   Litedb:(collection, allow_many=false) => new Litedb(collection, allow_many)
 };

@@ -10,7 +10,7 @@ Install with npm i litebd
 ```js
 conts {Litedb} = require('litedb)
 ```
-To create new document, for example post, you first parameter as thr name of the collection and optionally you can pass true or false (boolean) to the second agument of the constructor.This spacifies wheather you want to kep your collection in one file or ecach file for each collection.
+To create new document, for example post, your first parameter is the name of the collection and optionally you can pass true or false (boolean) to the second parameter of the constructor.This spacifies wheather you want to kep your collection in one file or ecach file for each collection.
 
     true - ecach file for each collection. 
     false - one file. 
@@ -24,8 +24,8 @@ const post =  Litedb('posts')
 const post =  Litedb('posts' true)
 //will create Db/posts.json at the root of you app
 
-let result = post.create({title:'post title 1',body:'i am post 1'}).save()
-let result = post.create([{title:'post title 1',body:'i am post 1'}]).save()
+let result = post.create({title:'post title 1',body:'i am post 1'})
+let result = post.create([{title:'post title 1',body:'i am post 1'}])
 //writes the database
 ```
 
