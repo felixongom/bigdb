@@ -485,6 +485,42 @@ class Litedb {
         result_found = result_found.filter((rec) =>
         !query_value.join().toLowerCase().includes(rec[crit_key].toLowerCase()));
       }
+      //all operator
+      if ($query_key === "$all") {
+        result_found = result_found.filter((rec) =>
+        query_value.join().toLowerCase()===rec[crit_key].join().toLowerCase());
+      }
+      //like operator
+      if ($query_key === "$like") {
+        result_found = result_found.filter((rec) =>{
+                    
+          //where it matches any where
+          if(query_value.charAt(0)==='%' && query_value.charAt(query_value.length-1)==='%'  ){
+            //removing %
+            let value = query_value.replace('%','').replace('%','').trim()
+             return rec[crit_key].toLowerCase().includes(value.toLowerCase())
+
+          }else if (query_value.charAt(0)==='%' ){
+            //matches at the start
+            let value = query_value.replace('%','').trim()
+            let sliced = rec[crit_key].slice(0, query_value.length-1).toLowerCase()
+            return sliced === value.toLowerCase()
+
+            
+          }else if (query_value.charAt(query_value.length-1)==='%' ) {
+            //matches at the end
+            // let value = query_value.replace('%','').trim()
+            // let sliced = rec[crit_key].slice(0, query_value.length-1).toLowerCase()
+            // console.log(sliced,'________',value);
+            // return sliced === value.toLowerCase()
+
+            
+          }
+
+        })
+      }
+
+
     }
     return result_found;
   }
@@ -543,7 +579,10 @@ class Litedb {
   }
 }
 
-new Litedb ('post').create([{name:'tom'}])
+let post = new Litedb ('post')
+// .create([{name:'tom'}])
+.find({name:{$like:'%to'}}).get()
+console.log(post);
 module.exports = {
   Litedb:(collection, allow_many=false) => new Litedb(collection, allow_many)
 };
