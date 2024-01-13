@@ -16,12 +16,12 @@ To create new document, for example post, you first parameter as thr name of the
     false - one file. 
 
 ```js
-const post = new Litedb('posts') 
+const post =  Litedb('posts') 
 //will create Db/db.json at the root of you app
 
 //OR
 
-const post = new Litedb('posts' true)
+const post =  Litedb('posts' true)
 //will create Db/posts.json at the root of you app
 
 let result = post.create({title:'post title 1',body:'i am post 1'}).save()
