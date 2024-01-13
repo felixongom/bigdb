@@ -37,7 +37,10 @@ class Litedb {
   #sort = false;
   #sort_criteria = {};
   #exclude_field = {};
-  #limit = 12;
+  #limit;
+  #allow_limit = false
+  #allow_skip = false
+  #skipby = 0;
   #page = 1;
   #pagination = false;
 
@@ -211,8 +214,15 @@ class Litedb {
   }
 
   // limit
-  limit(limit = 1) {
+  limit(limit = this.#db_collection.length) {
+    this.#allow_limit = true
     this.#limit = limit;
+    return this;
+  }
+  // skipp
+  skip(skipby = 0) {
+    this.#allow_skip = true
+    this.#skipby = skipby;
     return this;
   }
 
@@ -238,14 +248,9 @@ class Litedb {
   #sortResultOfFind() {
   
     if (!this.#hasProperty(this.#sort_criteria)) {
-      if (this.#limit) {
-        return this.#db_collection.slice(0, this.#limit);
-      } else {
-        return this.#db_collection;
-      }
+      return  this.#db_collection
     }
 
-    
     let sample = this.#db_collection[0];
     //if db collection is empty
     if (!sample) {
@@ -301,11 +306,20 @@ class Litedb {
     }
     //handle sorting during find()
     if (this.#sort === true) {
-      return this.#sortResultOfFind();
+      this.#db_collection =  this.#sortResultOfFind()
     }
 
-    
-    //
+    //handle skipping
+    if(this.#allow_skip) {
+      let length = this.#db_collection.length 
+      this.#db_collection = this.#db_collection.slice(this.#skipby, length)
+    }
+    //handle limiting
+    if(this.#allow_limit) {
+      this.#db_collection = this.#db_collection.slice(0,  this.#limit)
+    }
+
+    //pagenate
     if (this.#pagination) {
       let start = (this.#page - 1) * this.#limit;
       let stop = this.#page * this.#limit;
@@ -526,4 +540,6 @@ class Litedb {
   }
 }
 
-module.exports = {Litedb};
+module.exports = {
+  Litedb:(collection, allow_many=false) => new Litedb(collection, allow_many)
+};
