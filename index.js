@@ -36,7 +36,6 @@ class Litedb {
   #incid = 0; //autoincreamting id
   #input_field; //the field being asked by the constructor
   #many_files = false; //wheater to create one or more files
-  #creating_collection = false
   #sort = false;
   #sort_criteria = {};
   #exclude_field = {};
@@ -47,9 +46,11 @@ class Litedb {
   #page = 1;
   #pagination = false;
 
-  constructor(field, many_files = false) {
+  constructor( db_path, field, many_files = false) {
+    this.#db_path = db_path ? db_path :this.#db_path
     this.#input_field = field;
     this.#many_files = many_files;
+
 
     if (many_files) {
       this.#db_path = this.#db_path + field + ".json"; //path to a separate file
@@ -68,7 +69,6 @@ class Litedb {
   //*Create**************************************************************************
   // create new record
   create(record) {
-    this.#creating_collection = true
     //craete array of record
     if(Array.isArray(record)){
       for( let rec of record){
@@ -78,7 +78,8 @@ class Litedb {
       // create single record 
     this.#addToDbCollection(record)
     }
-    return this;
+    // this.#save(true)
+    return this.#db_collection.slice(-1);
   }
 
   //*Update**************************************************************************
@@ -86,12 +87,52 @@ class Litedb {
   update(id, record) {
     delete record.createddAt;
     delete record.id;
+    let key = Object.keys(record)[0]
     //
+  //  let k = {$push:{price:2}}
+    if(key.includes('$')){
+      //checking for each case
+      // case inc
+      if(key ==='$inc') {
+        let field = record['$inc']
+        for(let inner_key in field){
+          let record_key = inner_key 
+          let update_value = field[inner_key] 
+           // 
+          let found = this.#db_collection.find((rec) => rec.id === id);
+          found && (found.updatedAt = new Date().toISOString());
+          //
+          this.#db_collection = this.#db_collection.map(rec => 
+            (rec.id ===id && typeof rec[record_key] ==="number")?
+            {...rec, [record_key]: rec[record_key] +update_value}:rec) 
+        }
+      }
+
+      // case pull
+      if(key ==='$push') {
+        let field = record['$push']
+        for(let inner_key in field){
+          let record_key = inner_key 
+          let update_value = field[inner_key] 
+           // 
+          let found = this.#db_collection.find((rec) => rec.id === id);
+          found && (found.updatedAt = new Date().toISOString());
+          //
+          this.#db_collection = this.#db_collection.map((rec) =>
+            (rec.id === id && Array.isArray(found[record_key])) ? 
+            { ...found, ...found[record_key].push(update_value)} : rec); 
+        }
+
+      }
+
+      return this.#save(false);
+    }
+    // 
     let found = this.#db_collection.find((rec) => rec.id === id);
     found && (found.updatedAt = new Date().toISOString());
     //
     this.#db_collection = this.#db_collection.map((rec) =>
-      rec.id === id ? { ...found, ...record } : rec
+      rec.id === id && { ...found, ...record }
     );
     this.#save(false);
 
@@ -100,7 +141,7 @@ class Litedb {
 
   //update many given the criteria
   findOneAndUpdate(criteria, record) {
-    let found_result = this.#matchAllCriteria(criteria)[0];
+    let found_result = this.#matchOverallCriteria(criteria)[0];
     // update each one of it;
     if (found_result) {
       this.update(found_result.id, record);
@@ -110,7 +151,7 @@ class Litedb {
 
   //update many given the criteria
   findAndUpdate(criteria, record) {
-    let found_result = this.#matchAllCriteria(criteria);
+    let found_result = this.#matchOverallCriteria(criteria);
     // update each one of it;
     if (found_result.length > 0) {
       for (let one_found of found_result) {
@@ -132,7 +173,7 @@ class Litedb {
 
   // delete one by criteria
   findOneAndDelete(criteria) {
-    let found = this.#matchAllCriteria(criteria)[0];
+    let found = this.#matchOverallCriteria(criteria)[0];
     if (found) {
       this.#db_collection = this.#db_collection.filter(
         (rec) => rec.id !== found.id
@@ -144,7 +185,7 @@ class Litedb {
 
   // delete many by criteria
   findAndDelete(criteria) {
-    let found = this.#matchAllCriteria(criteria);
+    let found = this.#matchOverallCriteria(criteria);
     if (found) {
       for (let one_found of found) {
         this.#db_collection = this.#db_collection.filter(
@@ -153,12 +194,13 @@ class Litedb {
         this.#save(false);
       }
     }
+    return true
   }
 
   //*Last**************************************************************************
-  //finding last that #matchAllCriteria critria
+  //finding last that #matchOverallCriteria critria
   last(criteria = {}) {
-    return this.#matchAllCriteria(criteria).slice(-1)[0];
+    return this.#matchOverallCriteria(criteria).slice(-1)[0];
   }
 
   //*Find**************************************************************************
@@ -175,7 +217,7 @@ class Litedb {
       return this;
     }
     //
-    this.#db_collection = this.#matchAllCriteria(criteria);
+    this.#db_collection = this.#matchOverallCriteria(criteria);
     return this;
 
     //
@@ -186,13 +228,13 @@ class Litedb {
     if (!this.#hasProperty(criteria)) {
       return {};
     }
-    return this.#matchAllCriteria(criteria)[0];
+    return this.#matchOverallCriteria(criteria)[0];
   }
 
   //*countDocuments**************************************************************************
   //counting documnt that meets the criteria pased
   countDocuments(criteria = {}) {
-    return this.#matchAllCriteria(criteria).length;
+    return this.#matchOverallCriteria(criteria).length;
   }
 
   //*******************************************************************************************
@@ -233,7 +275,7 @@ class Litedb {
   paginate(critria={}, exclude = {}) {
     this.#exclude_field = exclude
     this.#pagination = true;
-    this.#db_collection = this.#matchAllCriteria(critria);
+    this.#db_collection = this.#matchOverallCriteria(critria);
     return this;
   }
 
@@ -348,6 +390,40 @@ class Litedb {
     }
   }
 
+  //overall filtering including $and and $or
+  #matchOverallCriteria(criteria){
+    let key = Object.keys(criteria)[0]
+    let result_found = []
+    let result_found_id = []
+    let i = 1
+
+    if(key==="$and"){
+      //case $and
+      for (let crit in criteria[key]){
+        result_found = this.#matchAllCriteria(criteria['$and'])
+      }
+      return result_found
+    }else if(key==='$or'){
+      // case $or 
+      for (let crit in criteria[key]){
+        let single_criteria ={}
+        single_criteria[crit] = criteria[key][crit]
+        let results = this.#matchAllCriteria(single_criteria)
+        //looping to push to the result founfd with check
+        for(let result of results){
+          if(!result_found_id.includes(result.id)){
+            result_found.push(result)
+            result_found_id.push(result.id)
+          }
+        }
+      }
+      return result_found
+
+    }else{
+      return this.#matchAllCriteria(criteria)
+    }
+  }
+  // matching palin and $criteria
   #matchAllCriteria(criteria) {
     let plain_criteia = {}; //get criteria without $
     let $criteria = {}; //get criteria with $
@@ -385,7 +461,7 @@ class Litedb {
 
       // less than
       if ($query_key === "$lt") {
-        let result_found = result_found.filter(
+        result_found = result_found.filter(
           (rec) => rec[crit_key] < query_value
         );
       }
@@ -488,8 +564,9 @@ class Litedb {
       //all operator
       if ($query_key === "$all") {
         result_found = result_found.filter((rec) =>
-        query_value.join().toLowerCase()===rec[crit_key].join().toLowerCase());
+        query_value.join()===rec[crit_key].join());
       }
+
       //like operator
       if ($query_key === "$like") {
         result_found = result_found.filter((rec) =>{
@@ -503,24 +580,19 @@ class Litedb {
           }else if (query_value.charAt(0)==='%' ){
             //matches at the start
             let value = query_value.replace('%','').trim()
-            let sliced = rec[crit_key].slice(0, query_value.length-1).toLowerCase()
+            let sliced = rec[crit_key].slice(0, value.length-1).toLowerCase()
             return sliced === value.toLowerCase()
 
             
-          }else if (query_value.charAt(query_value.length-1)==='%' ) {
+          }else if (query_value.slice(-1)==='%' ) {
             //matches at the end
-            // let value = query_value.replace('%','').trim()
-            // let sliced = rec[crit_key].slice(0, query_value.length-1).toLowerCase()
-            // console.log(sliced,'________',value);
-            // return sliced === value.toLowerCase()
-
-            
+            let value = query_value.replace('%','').toLowerCase().trim()
+            let sliced = rec[crit_key].slice((rec[crit_key].length-value.length), rec[crit_key].length).toLowerCase().trim()
+            return sliced === value
           }
 
         })
       }
-
-
     }
     return result_found;
   }
@@ -573,16 +645,15 @@ class Litedb {
     });
 
     this.#incid = this.#incid + (inc === true ? 1 : 0);
-    if(this.#creating_collection){
-      return this.#db_collection.slice(-1)[0]
-    }
+
   }
+  // #matchOverallCriteria
 }
 
-let post = new Litedb ('post')
-// .create([{name:'tom'}])
-.find({name:{$like:'%to'}}).get()
+let post = new Litedb (null, 'post')
+.create([{name:'tom'},{name:'mike'}])
 console.log(post);
+
 module.exports = {
   Litedb:(collection, allow_many=false) => new Litedb(collection, allow_many)
 };

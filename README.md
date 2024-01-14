@@ -16,20 +16,31 @@ To create new document, for example post, your first parameter is the name of th
     false - one file. 
 
 ```js
-const post =  Litedb('posts') 
+const post =  Litedb(null, 'posts') 
 //will create Db/db.json at the root of you app
 
 //OR
 
-const post =  Litedb('posts' true)
+const post =  Litedb(path.resolve+'/Database', 'posts') 
+//will create Database/db.json at the root of you app
+
+//OR
+
+const post =  Litedb(null, 'posts' true)
 //will create Db/posts.json at the root of you app
+
+//OR
+
+const post =  Litedb(path.resolve+'/Database', 'posts') 
+//will create Database/db.json at the root of you app
+
 
 let result = post.create({title:'post title 1',body:'i am post 1'})
 let result = post.create([{title:'post title 1',body:'i am post 1'}])
 //writes the database
 ```
 
-The above code will create a Db/db.json or Db/posts.json at the root of your app and it does not exist,
+The above code will create a corresponding path at the root of your app and it does not exist,
     - "posts" is the name of the collection, if we had passed users it would create a users collection in the database 
 
  Then it will return something like this;
@@ -99,6 +110,8 @@ We also have the **sort()** and **limit()**
 ```js
 post.find().sort({id:1}).get() 
 //1 for ascending  and -1 for for descending
+post.find().skip(2).get() 
+//skips the first two match
 
 post.find().limit(5).get() 
 //it retuns 5 documents
@@ -108,7 +121,7 @@ post.find().sort({id:-1}).limit(5).get()
 descending order basing on id 
 */
 ```
-**The sort() and limit() have ***no orders*** in which they are called** like in mongodb.
+**The .sort() and .limit() and .skip() have ***no orders*** in which they are called** like in mongodb.
 
 ```js
 post.find().sort({id:-1}).limit(5).get() 
@@ -320,17 +333,29 @@ food.find({prices:{$nin:5}}).get()
 //for array fields
 //foods whose prices list has no 5
 ```
-
-***$or***
+***$all***
 ```js
-food.find({name:{$or:['pizza', 'buger']}}).get()
-//foods whose name is pizza or burger
+food.find({prices:{$all:[5, 10]}}).get()
+//for array fields
+//foods whose prices matches all the value supplied list has no 5
 ```
 
 ***$or***
 ```js
-food.find({name:{$nor:['pizza', 'buger']}}).get()
-//foods whose name is not pizza or burger
+user.find({$or:{firstname:'tom', lastname:{$has:'jo'}}}).get()
+//users whose firstname is tom or lastname has jo in it
+
+food.find({$or:{name:'pizze', price:{$lt:20}}}).get()
+//foods whose name is pizza or price is less than 20
+```
+
+***$and***
+```js
+user.find({$and:{firstname:'tom', lastname:{$has:'jo'}}}).get()
+//users whose firstname is tom and lastname has jo in it
+
+food.find({$or:{name:'pizze', price:{$lt:20}}}).get()
+//foods whose name is pizza and price is less than 20
 ```
 
 You can have complex queries like
@@ -365,6 +390,8 @@ user.find({},{password:true})
 user.find({country:'USA'},{password:false})
 //returns results without password attribute
 ```
+
+#### THANKS
 
 
 
