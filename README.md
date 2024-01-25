@@ -1,14 +1,14 @@
-## Litedb.
+## Lytedb.
 
-Litedb is a javascript backen library for persisting data just like a database.
-It store it's data locally on the server just like sqlite3 would do, but instead it store its data in a json file.
-Litedb is similar to mongodb and can can perform both read and write operation.
+Lytedb is a javascript backend library for persisting data just like a database.
+It store it's data locally on the server just like sqlite would do, but instead it store its data in a json file.
+Lytedb is similar to mongodb and can can perform both read and write operation.
 It can help alot when building a small application, but for larger project, i would advise going for sql databases or mongodb
 
 ##### Usage.
-Install with npm i litebd
+Install with npm i lytebd
 ```js
-conts {Litedb} = require('litedb)
+conts {Lytedb} = require('lytedb)
 ```
 To create new document, for example post, your first parameter is the name of the collection and optionally you can pass true or false (boolean) to the second parameter of the constructor.This spacifies wheather you want to kep your collection in one file or ecach file for each collection.
 
@@ -16,23 +16,23 @@ To create new document, for example post, your first parameter is the name of th
     false - one file. 
 
 ```js
-const post =  Litedb(null, 'posts') 
-//will create Db/db.json at the root of you app
+const post =  Lytedb(null, 'posts') 
+//will create Db/database.json at the root of you app
 
 //OR
 
-const post =  Litedb(path.resolve+'/Database', 'posts') 
-//will create Database/db.json at the root of you app
+const post =  Lytedb(path.resolve()+'/Database', 'posts') 
+//will create Database/database.json at the root of you app
 
 //OR
 
-const post =  Litedb(null, 'posts' true)
+const post =  Lytedb(null, 'posts' true)
 //will create Db/posts.json at the root of you app
 
 //OR
 
-const post =  Litedb(path.resolve+'/Database', 'posts') 
-//will create Database/db.json at the root of you app
+const post =  Lytedb(path.resolve()+'/Database', 'posts') 
+//will create Db/database.json at the root of you app
 
 
 let result = post.create({title:'post title 1',body:'i am post 1'})
@@ -101,12 +101,12 @@ It returns an array of all the documents from posts collection.
     },
 ]
 ```
-Also yor can request for  particular kind of data like
+Also you can request for  particular kind of data like
 ```js
 post.find({views:2}).get()
 post.find({views:2, title:{$has:'post'}}).get()
 ```
-We also have the **sort()** and **limit()**
+We also have the **.sort()** and **.limit()**
 ```js
 post.find().sort({id:1}).get() 
 //1 for ascending  and -1 for for descending
@@ -121,7 +121,7 @@ post.find().sort({id:-1}).limit(5).get()
 descending order basing on id 
 */
 ```
-**The .sort() and .limit() and .skip() have ***no orders*** in which they are called** like in mongodb.
+**The .sort(), .limit() and .skip() have ***no orders*** in which they are called** like in mongodb.
 
 ```js
 post.find().sort({id:-1}).limit(5).get() 
@@ -155,13 +155,44 @@ post.findAndUpdate({views:10}, {title:'updated title'})
 */
 ```
 
+***Update has criteria like;***
+**$inc**
+```js
+post.update(3, {$inc:{views:1}})
+//
+post.findAndUpdate({views:2}, {$inc:{views:5}})
+/* inceasing viesw by by spacified value the title of all the matches to 'updated title'
+*/
+```
+**$push**
+```js
+product.update(3, {$push:{price:100, <...>}})
+//
+post.findAndUpdate({id:{$gte:10}}, {$push:{views:5, <...>}})
+/* adding new value to an array attribute the matches 
+spacified criteria
+*/
+```
+**$pullAll**
+```js
+product.update(3, {$pullAll:{price:100}})
+//
+post.findAndUpdate({id:{$gte:10}}, {$pullAll:{price:[100, 250]}})
+/* remove all the prices sprcified from the price array for
+elements that spacified criteria
+*/
+```
+
+
 ##### **.delete()**
 
 ```js
 post.delete(2)
-/*
-deletes document with id 2
-*/
+// deletes document with id 2
+
+post.delete([2, 4, 5])
+// deletes document with ids of 2 ,4 ,5
+
 ```
 
 ##### **.findOneAndDelete()**
@@ -287,7 +318,7 @@ people.find({age:{$neq:18}}).get()
 ***$has***
 ```js
 people.find({country:{$has:'ug'}}).get()
-//people whose country is has ug in their name
+//people whose country has ug in their name
 ```
 
 ***$hasNo***
@@ -337,7 +368,7 @@ food.find({prices:{$nin:5}}).get()
 ```js
 food.find({prices:{$all:[5, 10]}}).get()
 //for array fields
-//foods whose prices matches all the value supplied list has no 5
+//foods whose prices matches all the value supplied as array 
 ```
 
 ***$or***

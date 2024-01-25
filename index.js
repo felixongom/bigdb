@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const readline = require('readline');
 
-
 // make directory
 const mkdir = (folder) => {
   if (!fs.existsSync(folder)) {
@@ -10,8 +9,6 @@ const mkdir = (folder) => {
   }
   return folder;
 };
-
-
 //
 const mkDir = (upload_path) => {
   let formated_path = "";
@@ -29,16 +26,62 @@ const mkDir = (upload_path) => {
   mkdir(formated_path);
 };
 
-class Litedb {
-  #db_path = path.resolve() + "/Db/"; //path to the db
-  #db = {}; //the db itself
-  #db_collection = []; // the field being affected from the db
+//writing json stream
+function writeObjectToJsonStream(filePath, jsonObject) {
+  const writeStream = fs.createWriteStream(filePath, { encoding: 'utf8' });
+
+  // Write the JSON string of the object to the stream
+  writeStream.write(JSON.stringify(jsonObject,null, 2));
+
+  // Close the write stream
+  writeStream.end();
+
+  writeStream.on('error', (error) => {
+    console.error('Error writing to JSON stream:', error);
+  });
+}
+
+// reading the json stream
+function readLargeJsonStream(filePath) {
+  return new Promise((resolve, reject) => {
+    const readStream = fs.createReadStream(filePath, { encoding: 'utf8' });
+    const rl = readline.createInterface({
+      input: readStream,
+      crlfDelay: Infinity
+    });
+
+    let jsonData = '';
+
+    rl.on('line', (line) => {
+      jsonData += line;
+    });
+
+    rl.on('close', () => {
+      try {
+        const jsonObject = JSON.parse(jsonData);
+        resolve(jsonObject);
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    rl.on('error', (error) => {
+      reject(error);
+    });
+  });
+}
+
+// 
+class Lytedb {
+  #database_path = path.resolve() + "/DB/"; //path to the database
+  #database = {}; //the database itself
+  #database_collection = []; // the collection being affected from the database
   #incid = 0; //autoincreamting id
-  #input_field; //the field being asked by the constructor
+  #input_collection; //the collection being asked by the constructor
   #many_files = false; //wheater to create one or more files
   #sort = false;
   #sort_criteria = {};
-  #exclude_field = {};
+  #exclude_collection = {};
   #limit;
   #allow_limit = false
   #allow_skip = false
@@ -46,24 +89,25 @@ class Litedb {
   #page = 1;
   #pagination = false;
 
-  constructor( db_path, field, many_files = false) {
-    this.#db_path = db_path ? db_path :this.#db_path
-    this.#input_field = field;
+  constructor( database_path, collection, many_files = false, callback) {
+
+    this.#database_path = database_path ? database_path :this.#database_path
+    this.#input_collection = collection;
     this.#many_files = many_files;
 
-
     if (many_files) {
-      this.#db_path = this.#db_path + field + ".json"; //path to a separate file
-      if (fs.existsSync(this.#db_path)) {
-        this.#db = require(this.#db_path) || {};
+      this.#database_path = this.#database_path + collection + ".json"; //path to a separate file
+      if (fs.existsSync(this.#database_path)) {
+        // this.#database = require(this.#database_path) || {};
       }
     } else {
-      if (fs.existsSync(this.#db_path + "db.json")) {
-        this.#db = require(this.#db_path + "db.json") || {};
+      if (fs.existsSync(this.#database_path + "database.json")) {
+        this.#database = require(this.#database_path + "database.json") || {};
       }
     }
-    this.#db_collection = this.#db[field] || this.#db_collection;
-    this.#incid = this.#db["_" + field] || this.#incid;
+    this.#database_collection = this.#database[collection] || this.#database_collection;
+    this.#incid = this.#database["_" + collection] || this.#incid;
+    
   }
 
   //*Create**************************************************************************
@@ -72,70 +116,94 @@ class Litedb {
     //craete array of record
     if(Array.isArray(record)){
       for( let rec of record){
-        this.#addToDbCollection(rec)
+        this.#addTodatabaseCollection(rec)
       }
     }else{
       // create single record 
-    this.#addToDbCollection(record)
+    this.#addTodatabaseCollection(record)
     }
     // this.#save(true)
-    return this.#db_collection.slice(-1);
+    return this.#database_collection.slice(-1);
   }
 
   //*Update**************************************************************************
   // update by the id
   update(id, record) {
+    if(!this.#hasProperty(record)) return false
     delete record.createddAt;
     delete record.id;
     let key = Object.keys(record)[0]
+    let found = this.findById(id);
     //
   //  let k = {$push:{price:2}}
     if(key.includes('$')){
       //checking for each case
       // case inc
       if(key ==='$inc') {
-        let field = record['$inc']
-        for(let inner_key in field){
+        let collection = record['$inc']
+        for(let inner_key in collection){
           let record_key = inner_key 
-          let update_value = field[inner_key] 
+          let update_value = collection[inner_key] 
            // 
-          let found = this.#db_collection.find((rec) => rec.id === id);
+          let found = this.findById(id);
           found && (found.updatedAt = new Date().toISOString());
+          
           //
-          this.#db_collection = this.#db_collection.map(rec => 
-            (rec.id ===id && typeof rec[record_key] ==="number")?
-            {...rec, [record_key]: rec[record_key] +update_value}:rec) 
+          this.#database_collection = this.#database_collection.map(rec => {
+            return (
+                (rec.id === id && typeof rec[record_key] ==="number" && typeof rec[record_key] ==="number") ?
+            {...rec, [record_key]: rec[record_key] + update_value}:rec
+
+            )
+          })          
         }
       }
 
-      // case pull
+      // case push
       if(key ==='$push') {
-        let field = record['$push']
-        for(let inner_key in field){
+        let collection = record['$push']
+        for(let inner_key in collection){
           let record_key = inner_key 
-          let update_value = field[inner_key] 
+          let update_value = collection[inner_key] 
            // 
-          let found = this.#db_collection.find((rec) => rec.id === id);
+          
           found && (found.updatedAt = new Date().toISOString());
           //
-          this.#db_collection = this.#db_collection.map((rec) =>
+          this.#database_collection = this.#database_collection.map((rec) =>
             (rec.id === id && Array.isArray(found[record_key])) ? 
             { ...found, ...found[record_key].push(update_value)} : rec); 
         }
 
       }
 
-      return this.#save(false);
+      //case pullAll
+      if(key ==='$pullAll') {
+        let collection = record['$pullAll']
+        for(let inner_key in collection){
+          let record_key = inner_key 
+          let update_value = collection[inner_key] 
+           // 
+          
+          found && (found.updatedAt = new Date().toISOString());
+          //
+          this.#database_collection = this.#database_collection.map((rec) =>
+            (rec.id === id && Array.isArray(found[record_key])) ? 
+            { ...found, [record_key]:this.#pullAllInstance(rec[record_key], update_value)} : rec); 
+        }
+
+      }
+
+      this.#save(false);
+
+      return this.findById(id)
     }
     // 
-    let found = this.#db_collection.find((rec) => rec.id === id);
     found && (found.updatedAt = new Date().toISOString());
     //
-    this.#db_collection = this.#db_collection.map((rec) =>
-      rec.id === id && { ...found, ...record }
+    this.#database_collection = this.#database_collection.map((rec) =>
+      rec.id === id ? { ...found, ...record } : {...rec}
     );
     this.#save(false);
-
     return { ...found, ...record };
   }
 
@@ -164,18 +232,24 @@ class Litedb {
   //*Delete**************************************************************************
   // delet a record by id
   delete(id) {
-    this.#db_collection = this.#db_collection.filter((rec) => rec.id !== id);
+    if(Array.isArray(id)){
+      // if it is array of ids, [1,2,3]
+      for(let i of id){
+        this.#database_collection = this.#database_collection.filter((rec) => rec.id !== i);
+
+      }
+    }
+    // 
+    this.#database_collection = this.#database_collection.filter((rec) => rec.id !== id);
     this.#save(false);
-    return (this.#db_collection = this.#db_collection.find(
-      (rec) => rec.id === id
-    ));
+    return (this.#database_collection =this.findById);
   }
 
   // delete one by criteria
   findOneAndDelete(criteria) {
     let found = this.#matchOverallCriteria(criteria)[0];
     if (found) {
-      this.#db_collection = this.#db_collection.filter(
+      this.#database_collection = this.#database_collection.filter(
         (rec) => rec.id !== found.id
       );
       this.#save(false);
@@ -188,7 +262,7 @@ class Litedb {
     let found = this.#matchOverallCriteria(criteria);
     if (found) {
       for (let one_found of found) {
-        this.#db_collection = this.#db_collection.filter(
+        this.#database_collection = this.#database_collection.filter(
           (rec) => rec.id !== one_found.id
         );
         this.#save(false);
@@ -206,18 +280,18 @@ class Litedb {
   //*Find**************************************************************************
   // find by id
   findById(id) {
-    return this.#db_collection.find((rec) => rec.id === id);
+    return this.#database_collection.find(rec=>rec.id ===id) || {};
   }
 
   find(criteria = {}, exclude = {}) {
-    this.#exclude_field = exclude;
+    this.#exclude_collection = exclude;
     //
     if (!this.#hasProperty(criteria)) {
-      this.#db_collection = this.#db_collection;
+      this.#database_collection = this.#database_collection;
       return this;
     }
     //
-    this.#db_collection = this.#matchOverallCriteria(criteria);
+    this.#database_collection = this.#matchOverallCriteria(criteria);
     return this;
 
     //
@@ -241,14 +315,14 @@ class Litedb {
   //*Helper methods**************************************************************************
   //*******************************************************************************************
 
-  #addToDbCollection(record){
+  #addTodatabaseCollection(record){
     if (!this.#hasProperty(record)) return;
       record.id = this.#incid + 1;
       //
       record.createdAt = new Date().toISOString();
       record.updatedAt = new Date().toISOString();
       //
-      this.#db_collection.push(record);
+      this.#database_collection.push(record);
       this.#save(true);
   }
   // sorting result in assending or descending order
@@ -259,7 +333,7 @@ class Litedb {
   }
 
   // limit
-  limit(limit = this.#db_collection.length) {
+  limit(limit = this.#database_collection.length) {
     this.#allow_limit = true
     this.#limit = limit;
     return this;
@@ -273,9 +347,9 @@ class Litedb {
 
   // paginate and return data togethor with metadata
   paginate(critria={}, exclude = {}) {
-    this.#exclude_field = exclude
+    this.#exclude_collection = exclude
     this.#pagination = true;
-    this.#db_collection = this.#matchOverallCriteria(critria);
+    this.#database_collection = this.#matchOverallCriteria(critria);
     return this;
   }
 
@@ -293,86 +367,86 @@ class Litedb {
   #sortResultOfFind() {
   
     if (!this.#hasProperty(this.#sort_criteria)) {
-      return  this.#db_collection
+      return  this.#database_collection
     }
 
-    let sample = this.#db_collection[0];
-    //if db collection is empty
+    let sample = this.#database_collection[0];
+    //if database collection is empty
     if (!sample) {
-      return this.#db_collection;
+      return this.#database_collection;
     }
 
     //
     for (let keys in this.#sort_criteria) {
       let key = keys;
       let value = this.#sort_criteria[key];
-      let field = sample[key];
+      let collection = sample[key];
 
       // sort
-      if (typeof field === "number") {
+      if (typeof collection === "number") {
         // check order
         if (value < 0) {
-          this.#db_collection = this.#db_collection.sort(
+          this.#database_collection = this.#database_collection.sort(
             (a, b) => b[key] - a[key]
           );
         } else {
-          this.#db_collection = this.#db_collection.sort(
+          this.#database_collection = this.#database_collection.sort(
             (a, b) => a[key] - b[key]
           );
         }
-      } else if (typeof field === "string") {
+      } else if (typeof collection === "string") {
         // check order
         if (value < 0) {
-          this.#db_collection = this.#db_collection.sort((a, b) =>
+          this.#database_collection = this.#database_collection.sort((a, b) =>
             b[key].localeCompare(a[key])
           );
         } else {
-          this.#db_collection = this.#db_collection.sort((a, b) =>
+          this.#database_collection = this.#database_collection.sort((a, b) =>
             a[key].localeCompare(b[key])
           );
         }
       }
 
       if (this.#limit) {
-        return this.#db_collection.slice(0, this.#limit);
+        return this.#database_collection.slice(0, this.#limit);
       } else {
-        return this.#db_collection;
+        return this.#database_collection;
       }
     }
   }
   // getting the result , called wen chaining mathod
   get() {
-    //removing unwanted fields
-    for (let field in this.#exclude_field) {
-      this.#db_collection.map((rec) => {
-        !this.#exclude_field[field] && delete rec[field];
+    //removing unwanted collections
+    for (let collection in this.#exclude_collection) {
+      this.#database_collection.map((rec) => {
+        !this.#exclude_collection[collection] && delete rec[collection];
         return rec;
       });
     }
     //handle sorting during find()
     if (this.#sort === true) {
-      this.#db_collection =  this.#sortResultOfFind()
+      this.#database_collection =  this.#sortResultOfFind()
     }
 
     //handle skipping
     if(this.#allow_skip) {
-      let length = this.#db_collection.length 
-      this.#db_collection = this.#db_collection.slice(this.#skipby, length)
+      let length = this.#database_collection.length 
+      this.#database_collection = this.#database_collection.slice(this.#skipby, length)
     }
     //handle limiting
     if(this.#allow_limit) {
-      this.#db_collection = this.#db_collection.slice(0,  this.#limit)
+      this.#database_collection = this.#database_collection.slice(0,  this.#limit)
     }
 
     //pagenate
     if (this.#pagination) {
       let start = (this.#page - 1) * this.#limit;
       let stop = this.#page * this.#limit;
-      let result = this.#db_collection.slice(start, stop);
-      let has_next = stop < this.#db_collection.length;
+      let result = this.#database_collection.slice(start, stop);
+      let has_next = stop < this.#database_collection.length;
       let has_prev = (this.#page - 1) * this.#limit > 1;
-      let num_pages = Math.ceil(this.#db_collection.length / this.#limit);
-      let next_page = this.#db_collection.length > stop ? this.#page + 1 : null;
+      let num_pages = Math.ceil(this.#database_collection.length / this.#limit);
+      let next_page = this.#database_collection.length > stop ? this.#page + 1 : null;
       let prev_page = this.#page - 1 < 1 ? null : this.#page - 1;
 
       return {
@@ -386,16 +460,17 @@ class Litedb {
         num_pages,
       };
     } else {
-      return this.#db_collection;
+      return this.#database_collection;
     }
   }
 
   //overall filtering including $and and $or
   #matchOverallCriteria(criteria){
+    
     let key = Object.keys(criteria)[0]
     let result_found = []
     let result_found_id = []
-    let i = 1
+    
 
     if(key==="$and"){
       //case $and
@@ -420,30 +495,35 @@ class Litedb {
       return result_found
 
     }else{
+
       return this.#matchAllCriteria(criteria)
     }
   }
   // matching palin and $criteria
   #matchAllCriteria(criteria) {
-    let plain_criteia = {}; //get criteria without $
-    let $criteria = {}; //get criteria with $
 
+    let plain_criteria = {}; //get criteria without $
+    let $criteria = {}; //get criteria with $
     for (let crit in criteria) {
+      
       //handles objects without $
-      if (typeof criteria[crit] !== "string") {
-        $criteria[crit] = criteria[crit];
+      if (typeof criteria[crit] !== "object") {
+        plain_criteria[crit] = criteria[crit];
+        $criteria = criteria[crit];        
+        
       } else {
         //handles objects with $
-        plain_criteia[crit] = criteria[crit];
+        $criteria[crit] = criteria[crit] 
       }
     }
     //
-    let result_found = this.#matchPlainObject(plain_criteia);
+    let result_found = this.#matchPlainObject(plain_criteria);
 
     // filterin queries with $ in them
     for (let crit_key in $criteria) {
       let $query_key = Object.keys($criteria[crit_key])[0];
       let query_value = $criteria[crit_key][$query_key];
+
 
       // check the type of filter and run its logic of filtering
       if ($query_key === "$has") {
@@ -502,10 +582,10 @@ class Litedb {
       }
 
       // equals to operator
-      if ($query_key === "$eq") {
+      if ($query_key === "$eq") {        
         result_found = result_found.filter(
           (rec) => rec[crit_key] === query_value
-        );
+          );
       }
 
       // not equals to operator
@@ -599,25 +679,33 @@ class Litedb {
 
   // finding the record matching the creteria without nested object passed
   #matchPlainObject(criteria = {}) {
-    if (!this.#hasProperty(criteria)) return this.#db_collection;
+    if (!this.#hasProperty(criteria)) return this.#database_collection;
     let found_result = [];
     let i = 0;
 
     for (let crit in criteria) {
-      let key = crit;
-
-      if (i === 0) {
-        found_result = this.#db_collection.filter(
-          (rec) => rec[key].toLowerCase() === criteria[key].toLowerCase()
+      i++
+      if (i === 1) {
+        found_result = this.#database_collection.filter((rec) => {
+            return (
+              rec[crit] && rec[crit] === criteria[crit]
+            )
+          }
         );
+        
       } else {
-        found_result = found_result.filter(
-          (rec) => rec[key].toLowerCase() === criteria[key].toLowerCase()
+        found_result = found_result.filter((rec) =>{
+          console.log(rec[crit].toLowerCase())
+          return (
+            rec[crit] && rec[crit] === criteria[crit]
+          )
+        } 
         );
       }
     }
     return found_result;
   }
+
   //check if an objct has prperty
   #hasProperty(criteria) {
     let keys = [];
@@ -627,33 +715,52 @@ class Litedb {
 
     return keys.length > 0 ? true : false;
   }
-  // #save method that write to db
-  #save(inc) {
-    this.#db[this.#input_field] = this.#db_collection;
-    this.#db["_" + this.#input_field] = this.#incid + (inc === true ? 1 : 0);
-    // let path = this.#db_path+(this.#many_files?this.#input_field:'.json')
-    let path;
-    mkDir("Db");
-    if (this.#many_files) {
-      path = this.#db_path;
-    } else {
-      path = this.#db_path + "db.json";
+
+  //remove all the occurence of an ellement of an array, does not take in an object 
+  #pullAllInstance(inputArray, elToBeRemoved){
+    if(!Array.isArray(inputArray)) return inputArray
+    let _elToBeRemoved = Array.isArray(elToBeRemoved)?elToBeRemoved:[elToBeRemoved]
+    let _inputArray = inputArray 
+
+    for( let remove_element of _elToBeRemoved){
+        _inputArray = _inputArray.filter(el=>el!==remove_element)
     }
-    // fs.writeFileSync(path, JSON.stringify(this.#db, null, 2));
-    fs.writeFile(path, JSON.stringify(this.#db, null, 2), (err) => {
-      if (err) console.log(err); 
-    });
+    return _inputArray
+} 
+  // #save method that write to database
+  #save(inc) {
+    this.#database[this.#input_collection] = this.#database_collection;
+    this.#database["_" + this.#input_collection] = this.#incid + (inc === true ? 1 : 0);
+    // let path = this.#database_path+(this.#many_files?this.#input_collection:'.json')
+    let path;
+    mkDir(this.#database_path);
+    if (this.#many_files) {
+      path = this.#database_path;
+    } else {
+      path = this.#database_path + "database.json";
+    }
+    //
+     writeObjectToJsonStream(path, this.#database);
+
+    // fs.writeFile(path, JSON.stringify(this.#database, null, 2), (err) => {
+    //   if (err) console.log(err); 
+    // });
 
     this.#incid = this.#incid + (inc === true ? 1 : 0);
 
   }
-  // #matchOverallCriteria
 }
 
-let post = new Litedb (null, 'post')
-.create([{name:'tom'},{name:'mike'}])
-console.log(post);
+
+
+let post = new Lytedb(null, 'posts')
+let res = post
+// .create([{name:'john'}, {name:'peter'}])
+// .update(1, {name:'felix'})
+// .findAndUpdate({name:{$eq:'peter'}}, {name:'peterson'})
+.find().get()
+console.log(res);
 
 module.exports = {
-  Litedb:(collection, allow_many=false) => new Litedb(collection, allow_many)
+  Lytedb:(database_path = null, collection, allow_many = false) => new Lytedb(database_path, collection, allow_many)
 };
