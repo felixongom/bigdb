@@ -173,6 +173,7 @@ post.findAndUpdate({id:{$gte:10}}, {$push:{views:5, <...>}})
 spacified criteria
 */
 ```
+
 **$pullAll**
 ```js
 product.update(3, {$pullAll:{price:100}})

@@ -89,7 +89,7 @@ class Lytedb {
   #page = 1;
   #pagination = false;
 
-  constructor( database_path, collection, many_files = false, callback) {
+  constructor( database_path, collection, many_files = false) {
 
     this.#database_path = database_path ? database_path :this.#database_path
     this.#input_collection = collection;
@@ -242,7 +242,8 @@ class Lytedb {
     // 
     this.#database_collection = this.#database_collection.filter((rec) => rec.id !== id);
     this.#save(false);
-    return (this.#database_collection =this.findById);
+    this.#database_collection = this.findById;
+    return this.findById(id);
   }
 
   // delete one by criteria
@@ -750,17 +751,7 @@ class Lytedb {
 
   }
 }
-
-
-
-let post = new Lytedb(null, 'posts')
-let res = post
-// .create([{name:'john'}, {name:'peter'}])
-// .update(1, {name:'felix'})
-// .findAndUpdate({name:{$eq:'peter'}}, {name:'peterson'})
-.find().get()
-console.log(res);
-
+// 
 module.exports = {
   Lytedb:(database_path = null, collection, allow_many = false) => new Lytedb(database_path, collection, allow_many)
 };
