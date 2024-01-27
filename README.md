@@ -2,7 +2,7 @@
 
 Lytedb is a javascript backend library for persisting data just like a database.
 It store it's data locally on the server just like sqlite would do, but instead it store its data in a json file.
-Lytedb is similar to mongodb and can can perform both read and write operation.
+Lytedb is similar to mongodb and can perform both read and write operation.
 It can help alot when building a small application, but for larger project, i would advise going for sql databases or mongodb
 
 ##### Usage.
@@ -10,37 +10,41 @@ Install with npm i lytebd
 ```js
 conts {Lytedb} = require('lytedb)
 ```
-To create new document, for example post, your first parameter is the name of the collection and optionally you can pass true or false (boolean) to the second parameter of the constructor.This spacifies wheather you want to kep your collection in one file or ecach file for each collection.
+To create new document, for example post, 
+- Your first parameter is the path where you database will leave 
+- Second paramter is the name of the collection and
+- Optionally you can pass true or false (boolean) to the third parameter of the constructor.This spacifies wheather you want to keep your collection in one file or ecach file for each collection.
 
     true - ecach file for each collection. 
     false - one file. 
 
+The instance of Lytedb is promise base.
 ```js
-const post =  Lytedb(null, 'posts') 
+const post =  await Lytedb(null, 'posts') 
 //will create Db/database.json at the root of you app
 
 //OR
 
-const post =  Lytedb(path.resolve()+'/Database', 'posts') 
+const post =  await Lytedb('Database', 'posts') 
 //will create Database/database.json at the root of you app
 
 //OR
 
-const post =  Lytedb(null, 'posts' true)
+const post =  await Lytedb(null, 'posts' true)
 //will create Db/posts.json at the root of you app
 
 //OR
 
-const post =  Lytedb(path.resolve()+'/Database', 'posts') 
-//will create Db/database.json at the root of you app
+const post = await Lytedb('/Database/folder', 'posts') 
+//will create /Database/folder/post.json at the root of you app
 
 
-let result = post.create({title:'post title 1',body:'i am post 1'})
-let result = post.create([{title:'post title 1',body:'i am post 1'}])
-//writes the database
+let result = post.create({title:'post title 1',body:'i am post 1'}) //single
+let result = post.create([{title:'post title 1',body:'i am post 1'}]) //bulk
+//this creates new documens in the database
 ```
 
-The above code will create a corresponding path at the root of your app and it does not exist,
+The above code will create a corresponding path at the root of your app if it does not exist,
     - "posts" is the name of the collection, if we had passed users it would create a users collection in the database 
 
  Then it will return something like this;
@@ -49,7 +53,6 @@ The above code will create a corresponding path at the root of your app and it d
   id: 1,
   title:'post title 1',
   body:'i am post 1',
-  views:2,
   createdAt: '2024-01-08T09:39:09.976Z',
   updatedAt: '2024-01-08T09:39:09.976Z'
 }
@@ -60,8 +63,9 @@ The above code will create a corresponding path at the root of your app and it d
 It auto asign createdAt, updatedAt and id to it as it saves to database.
 The id  is an autoincreamenting id.
 
-***As i told you earlier that the methods are similar to mongodb methods***, All queries ara case insensitive, uppercase letter are the same as lowercase letter ('a' is the same as 'A' ). 
-We also have methods like;
+***As i told you earlier that the methods are similar to mongodb methods***, All queries are case insensitive, uppercase letter are the same as lowercase letter ('a' is the same as 'A' ). 
+
+We also have many more methods like;
 
 ##### **.findById(id)**
 ```js
@@ -73,12 +77,17 @@ It returns the document with id 1 from posts collection.
 ```js
 post.findOne({name:{$has:'jo'}})
 ```
-It returns the first document with that matches the query
+It returns the first document that matches the query
 
 ##### **.find()**
-Every query that has find() ends with .get() .eg
+This takes in two optonal parameter,
+- First paramerter is the query
+- Second parameter is attribute you don't want to appear in the result 
+Every query that has .find() ends with .get() .eg
 ```js
 post.find().get()
+post.find({}).get()
+users.find({}, {password:false}).get()
 ```
 It returns an array of all the documents from posts collection.
 ```js
@@ -87,7 +96,6 @@ It returns an array of all the documents from posts collection.
         id: 1,
         title:'post title1',
         body:'i am post 1',
-        views:2,
         createdAt: '2024-01-08T09:39:09.976Z',
         updatedAt: '2024-01-08T09:39:09.976Z'
     },
@@ -95,7 +103,6 @@ It returns an array of all the documents from posts collection.
         id: 2,
         title:'post title2',
         body:'i am post 2'
-        views:8,
         createdAt: '2024-01-08T09:39:09.976Z',
         updatedAt: '2024-01-08T09:39:09.976Z'
     },
@@ -106,7 +113,7 @@ Also you can request for  particular kind of data like
 post.find({views:2}).get()
 post.find({views:2, title:{$has:'post'}}).get()
 ```
-We also have the **.sort()** and **.limit()**
+We also have the **.sort()**,  **.skip()** and **.limit()**
 ```js
 post.find().sort({id:1}).get() 
 //1 for ascending  and -1 for for descending
@@ -116,7 +123,7 @@ post.find().skip(2).get()
 post.find().limit(5).get() 
 //it retuns 5 documents
 
-post.find().sort({id:-1}).limit(5).get() 
+post.find().sort({id:-1}).limit(5).skip(2).get() 
 /*it retuns 5 documents sorted in 
 descending order basing on id 
 */
@@ -237,9 +244,14 @@ counts the number of documents that matches the query
 ```
 
 ##### **.paginate()**
+This takes in two optonal parameter,
+- First paramerter is the query.
+- Second parameter is attribute you don't want to appear in the result.
+
 This method has .get() at the end. This returns the data together with some metedata, call the get at the end
 ```js
 post.paginate().get()
+post.paginate({}).get()
 //defaults to page 1 and count of 12
 
 post.paginate().page(2).get() 
@@ -279,7 +291,7 @@ The result look like this.
 }
 ```
 
-**Some of the different ways of filterind are;**
+**Some of the different ways of filtering or querying for specific kind of data are;**
 
 ***$lt***
 ```js
@@ -423,7 +435,7 @@ user.find({country:'USA'},{password:false})
 //returns results without password attribute
 ```
 
-#### THANKS
+#### THANKS, from ***Lytedb team***
 
 
 

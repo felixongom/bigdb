@@ -10,6 +10,7 @@ const mkdir = (folder) => {
   return folder;
 };
 //
+
 const mkDir = (upload_path) => {
   let formated_path = "";
   let i = 0;
@@ -24,6 +25,7 @@ const mkDir = (upload_path) => {
     }
   }
   mkdir(formated_path);
+  
 };
 
 //writing json stream
@@ -73,12 +75,12 @@ function readLargeJsonStream(filePath) {
 
 // 
 class Lytedb {
-  #database_path = path.resolve() + "/DB/"; //path to the database
+  // database_file, database, collection
+  #database_file
   #database = {}; //the database itself
   #database_collection = []; // the collection being affected from the database
   #incid = 0; //autoincreamting id
   #input_collection; //the collection being asked by the constructor
-  #many_files = false; //wheater to create one or more files
   #sort = false;
   #sort_criteria = {};
   #exclude_collection = {};
@@ -88,26 +90,15 @@ class Lytedb {
   #skipby = 0;
   #page = 1;
   #pagination = false;
+  #update_many=false
 
-  constructor( database_path, collection, many_files = false) {
-
-    this.#database_path = database_path ? database_path :this.#database_path
-    this.#input_collection = collection;
-    this.#many_files = many_files;
-
-    if (many_files) {
-      this.#database_path = this.#database_path + collection + ".json"; //path to a separate file
-      if (fs.existsSync(this.#database_path)) {
-        // this.#database = require(this.#database_path) || {};
-      }
-    } else {
-      if (fs.existsSync(this.#database_path + "database.json")) {
-        this.#database = require(this.#database_path + "database.json") || {};
-      }
-    }
-    this.#database_collection = this.#database[collection] || this.#database_collection;
-    this.#incid = this.#database["_" + collection] || this.#incid;
-    
+  constructor( database_file, database, collection_name) {
+    this.#database_file = database_file
+    this.#database = database
+    this.#input_collection = collection_name;
+  
+    this.#database_collection = this.#database[collection_name];
+    this.#incid = this.#database["_" + collection_name] || this.#incid;
   }
 
   //*Create**************************************************************************
@@ -193,9 +184,6 @@ class Lytedb {
 
       }
 
-      this.#save(false);
-
-      return this.findById(id)
     }
     // 
     found && (found.updatedAt = new Date().toISOString());
@@ -203,22 +191,27 @@ class Lytedb {
     this.#database_collection = this.#database_collection.map((rec) =>
       rec.id === id ? { ...found, ...record } : {...rec}
     );
-    this.#save(false);
-    return { ...found, ...record };
+    this.#update_many===false && this.#save(false);
+    return  this.findById(id);
   }
 
   //update many given the criteria
   findOneAndUpdate(criteria, record) {
     let found_result = this.#matchOverallCriteria(criteria)[0];
+    let updated 
     // update each one of it;
     if (found_result) {
-      this.update(found_result.id, record);
+      updated = this.update(found_result.id, record);
     }
-    return true;
+
+    this.#update_many===false && this.#save(false);
+    return updated;
   }
 
   //update many given the criteria
   findAndUpdate(criteria, record) {
+    this.#update_many===true;
+
     let found_result = this.#matchOverallCriteria(criteria);
     // update each one of it;
     if (found_result.length > 0) {
@@ -226,6 +219,7 @@ class Lytedb {
         this.update(one_found.id, record);
       }
     }
+    this.#save(false);
     return true;
   }
 
@@ -253,8 +247,8 @@ class Lytedb {
       this.#database_collection = this.#database_collection.filter(
         (rec) => rec.id !== found.id
       );
-      this.#save(false);
     }
+    this.#save(false);
     return found || {};
   }
 
@@ -266,9 +260,9 @@ class Lytedb {
         this.#database_collection = this.#database_collection.filter(
           (rec) => rec.id !== one_found.id
         );
-        this.#save(false);
       }
     }
+    this.#save(false);
     return true
   }
 
@@ -732,26 +726,38 @@ class Lytedb {
   #save(inc) {
     this.#database[this.#input_collection] = this.#database_collection;
     this.#database["_" + this.#input_collection] = this.#incid + (inc === true ? 1 : 0);
-    // let path = this.#database_path+(this.#many_files?this.#input_collection:'.json')
-    let path;
-    mkDir(this.#database_path);
-    if (this.#many_files) {
-      path = this.#database_path;
-    } else {
-      path = this.#database_path + "database.json";
-    }
-    //
-     writeObjectToJsonStream(path, this.#database);
-
-    // fs.writeFile(path, JSON.stringify(this.#database, null, 2), (err) => {
-    //   if (err) console.log(err); 
-    // });
-
+    // 
+     writeObjectToJsonStream(this.#database_file, this.#database);
     this.#incid = this.#incid + (inc === true ? 1 : 0);
-
   }
 }
 // 
+
+// let post = new Lytedb(null, 'posts')
+// post.create([{name:'tom'}])
+const getDb = async(database_path = null, collection_name, allow_many = false) =>{
+  let database_name = allow_many?collection_name:'database' //name of the collection
+
+  let db_path = database_path === null?
+                path.resolve()+'/Db/':
+                path.resolve()+'/' + database_path +'/' //path to the database file
+ 
+  // create database directory
+  mkDir(db_path)
+
+  //read or create database
+  let database_file = db_path +database_name +"."+"json" 
+  let database_data = {[collection_name]:[], ['_'+collection_name]:0}
+  if (!fs.existsSync(database_file)) {
+    fs.writeFile(database_file, JSON.stringify(database_data, null, 2), (err) => {
+      if (err) console.log(err); 
+    });
+  }
+  // 
+  let database = await readLargeJsonStream(database_file)
+  return  new Lytedb(database_file, database, collection_name)
+}
+
 module.exports = {
-  Lytedb:(database_path = null, collection, allow_many = false) => new Lytedb(database_path, collection, allow_many)
+  Lytedb:getDb
 };
