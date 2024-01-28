@@ -1,6 +1,6 @@
 {
-  "name": "lytedb",
-  "version": "1.0.0",
+  "name": "bigdb",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {

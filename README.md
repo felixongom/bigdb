@@ -1,14 +1,14 @@
-## Lytedb.
+## Bigdb.
 
-Lytedb is a javascript backend library for persisting data just like a database.
+Bigdb is a javascript backend library for persisting data just like a database.
 It store it's data locally on the server just like sqlite would do, but instead it store its data in a json file.
-Lytedb is similar to mongodb and can perform both read and write operation.
+Bigdb METHODS are similar to that of mongoose (mongodb) and can perform both read and write operation.
 It can help alot when building a small application, but for larger project, i would advise going for sql databases or mongodb
 
 ##### Usage.
-Install with npm i lytebd
+Install with npm i bigdb
 ```js
-conts {Lytedb} = require('lytedb)
+conts {Bigdb} = require('bigdb)
 ```
 To create new document, for example post, 
 - Your first parameter is the path where you database will leave 
@@ -18,29 +18,29 @@ To create new document, for example post,
     true - ecach file for each collection. 
     false - one file. 
 
-The instance of Lytedb is promise base.
+The instance of Bigdb is promise base.
 ```js
-const post =  await Lytedb(null, 'posts') 
+const post =  await Bigdb(null, 'posts') 
 //will create Db/database.json at the root of you app
 
 //OR
 
-const post =  await Lytedb('Database', 'posts') 
+const post =  await Bigdb('Database', 'posts') 
 //will create Database/database.json at the root of you app
 
 //OR
 
-const post =  await Lytedb(null, 'posts' true)
+const post =  await Bigdb(null, 'posts' true)
 //will create Db/posts.json at the root of you app
 
 //OR
 
-const post = await Lytedb('/Database/folder', 'posts') 
+const post = await Bigdb('/Database/folder', 'posts') 
 //will create /Database/folder/post.json at the root of you app
 
 
 let result = post.create({title:'post title 1',body:'i am post 1'}) //single
-let result = post.create([{title:'post title 1',body:'i am post 1'}]) //bulk
+let result = post.create([{title:'post title 1',body:'i am post 1'}, <...>]) //bulk
 //this creates new documens in the database
 ```
 
@@ -168,9 +168,18 @@ post.findAndUpdate({views:10}, {title:'updated title'})
 post.update(3, {$inc:{views:1}})
 //
 post.findAndUpdate({views:2}, {$inc:{views:5}})
-/* inceasing viesw by by spacified value the title of all the matches to 'updated title'
+/* inceasing views  by spacified value
 */
 ```
+**$mul**
+```js
+post.update(3, {$mul:{views:1}})
+//
+post.findAndUpdate({views:2}, {$mul:{views:5}})
+/* multiplies views by spacified value.
+*/
+```
+
 **$push**
 ```js
 product.update(3, {$push:{price:100, <...>}})
@@ -435,7 +444,7 @@ user.find({country:'USA'},{password:false})
 //returns results without password attribute
 ```
 
-#### THANKS, from ***Lytedb team***
+#### THANKS, from ***Bigdb team***
 
 
 

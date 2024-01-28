@@ -74,7 +74,7 @@ function readLargeJsonStream(filePath) {
 }
 
 // 
-class Lytedb {
+class Bigdb {
   // database_file, database, collection
   #database_file
   #database = {}; //the database itself
@@ -129,7 +129,7 @@ class Lytedb {
   //  let k = {$push:{price:2}}
     if(key.includes('$')){
       //checking for each case
-      // case inc
+      // case increament
       if(key ==='$inc') {
         let collection = record['$inc']
         for(let inner_key in collection){
@@ -144,6 +144,26 @@ class Lytedb {
             return (
                 (rec.id === id && typeof rec[record_key] ==="number" && typeof rec[record_key] ==="number") ?
             {...rec, [record_key]: rec[record_key] + update_value}:rec
+
+            )
+          })          
+        }
+      }
+      // case increament
+      if(key ==='$mul') {
+        let collection = record['$mul']
+        for(let inner_key in collection){
+          let record_key = inner_key 
+          let update_value = collection[inner_key] 
+           // 
+          let found = this.findById(id);
+          found && (found.updatedAt = new Date().toISOString());
+          
+          //
+          this.#database_collection = this.#database_collection.map(rec => {
+            return (
+                (rec.id === id && typeof rec[record_key] ==="number" && typeof rec[record_key] ==="number") ?
+            {...rec, [record_key]: rec[record_key] * update_value}:rec
 
             )
           })          
@@ -733,20 +753,20 @@ class Lytedb {
 }
 // 
 
-// let post = new Lytedb(null, 'posts')
+// let post = new Bigdb(null, 'posts')
 // post.create([{name:'tom'}])
 const getDb = async(database_path = null, collection_name, allow_many = false) =>{
   let database_name = allow_many?collection_name:'database' //name of the collection
 
   let db_path = database_path === null?
-                path.resolve()+'/Db/':
-                path.resolve()+'/' + database_path +'/' //path to the database file
+                path.join(path.resolve(), 'Db'):
+                path.join(path.resolve(), database_path) //path to the database file
  
   // create database directory
   mkDir(db_path)
 
   //read or create database
-  let database_file = db_path +database_name +"."+"json" 
+  let database_file = path.join(db_path, database_name+".json") 
   let database_data = {[collection_name]:[], ['_'+collection_name]:0}
   if (!fs.existsSync(database_file)) {
     fs.writeFile(database_file, JSON.stringify(database_data, null, 2), (err) => {
@@ -755,9 +775,9 @@ const getDb = async(database_path = null, collection_name, allow_many = false) =
   }
   // 
   let database = await readLargeJsonStream(database_file)
-  return  new Lytedb(database_file, database, collection_name)
+  return  new Bigdb(database_file, database, collection_name)
 }
 
 module.exports = {
-  Lytedb:getDb
+  Bigdb:getDb
 };
