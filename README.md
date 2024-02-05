@@ -1,6 +1,6 @@
 ## Bigdb.
 
-Bigdb is a javascript backend library for persisting in a json file as a database.
+Bigdb is a javascript backend library for persisting data in a json file as a database.
 It store it's data locally on the server just like sqlite would do, but instead it store its data in a json file.
 Bigdb METHODS are similar to that of mongoose (mongodb) and can perform both read and write operation.
 It can help alot when building a small application, but for larger project, i would advise going for sql databases or mongodb
