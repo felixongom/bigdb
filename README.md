@@ -39,8 +39,8 @@ const Post = await Bigdb('/Database/folder', 'Posts')
 //will create /Database/folder/Post.json at the root of you app
 
 
-let result = Post.create({title:'Post title 1',body:'i am Post 1'}) //single
-let result = Post.create([{title:'Post title 1',body:'i am Post 1'}, <...>]) //bulk
+let result = await Post.create({title:'Post title 1',body:'i am Post 1'}) //single
+let result = await Post.create([{title:'Post title 1',body:'i am Post 1'}, <...>]) //bulk
 //this creates new documens in the database
 ```
 
