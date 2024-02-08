@@ -879,5 +879,5 @@ class Bigdb {
 
 //
 module.exports = {
-  Bigdb,
+  Bigdb:(path=null, collection, many=false)=>new Bigdb(path, collection, many)
 };

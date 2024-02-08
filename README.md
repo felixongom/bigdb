@@ -1,9 +1,9 @@
 ## Bigdb.
 
-Bigdb is a javascript backend library for persisting data in a json file as a database.
-It store it's data locally on the server just like sqlite would do, but instead it store its data in a json file.
+Bigdb is a javascript backend library for persisting data in a json file  database.
+It store it's data locally on the server just like sqlite, but instead it store its data in a json file.
 Bigdb METHODS are similar to that of mongoose (mongodb) and can perform both read and write operation.
-It can help alot when building a small application, but for larger project, i would advise going for sql databases or mongodb
+
 
 ##### Usage.
 Install with npm i bigdb
@@ -13,9 +13,10 @@ conts {Bigdb} = require('bigdb)
 To create new document, for example Post, cal the method Bigdb() 
 - Your first parameter is the path where you database will leave, can be null as well 
 - Second paramter is the name of the collection and
-- Optionally you can pass true or false (boolean) to the third parameter of the constructor.This spacifies wheather you want to keep your collection in one file or ecach file for each collection.
+- Optionally you can pass true or false (boolean) to the third parameter of the function.This spacifies wheather you want to keep your collection in one file or ecach file for each collection.
 
     true - each file for each collection. 
+
     false - one file called database.json. 
 
 Call  Bigdb and pass nessecary parameter.
