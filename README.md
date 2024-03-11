@@ -36,7 +36,7 @@ const Post =  Bigdb(null, 'Posts' true)
 
 //OR
 
-const Post = await Bigdb('/Database/folder', 'Posts') 
+const Post = Bigdb('/Database/folder', 'Posts') 
 //will create /Database/folder/Post.json at the root of you app
 
 
