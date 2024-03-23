@@ -1,16 +1,20 @@
 ## Bigdb.
 
-Bigdb is a javascript backend library for persisting data in a json file  database.
+Bigdb is a javascript backend library for reading and writing data in a json file  database.
 It store it's data locally on the server just like sqlite, but instead it store its data in a json file.
+Bigdb can read and write up to 10gb data. It can be used with any library that have access to fs module of node js.
+#### Installation.
+Install with ***npm i bigdb***.
+
+
+#### Usage.
 Bigdb METHODS are similar to that of mongoose (mongodb) and can perform both read and write operation.
-
-
-##### Usage.
-Install with npm i bigdb
 ```js
-conts {Bigdb} = require('bigdb)
+conts {Bigdb} = require('bigdb')
+//OR
+import {Bigdb} from 'bigdb'
 ```
-To create new document, for example Post, cal the method Bigdb() 
+To create new document, for example Post, call the method Bigdb() 
 - Your first parameter is the path where you database will leave, can be null as well 
 - Second paramter is the name of the collection and
 - Optionally you can pass true or false (boolean) to the third parameter of the function.This spacifies wheather you want to keep your collection in one file or ecach file for each collection.
@@ -116,7 +120,7 @@ await Post.find({views:2, title:{$has:'Post'}}).get()
 ```
 We also have the **.sort()**,  **.skip()** and **.limit()**
 ```js
-await Post.find().sort({id:1}).get() 
+await Post.find({}).sort({id:1}).get() 
 //1 for ascending  and -1 for for descending
 await Post.find().skip(2).get() 
 //skips the first two match
@@ -130,11 +134,14 @@ descending order basing on id
 */
 ```
 **The .sort(), .limit() and .skip() have ***no orders*** in which they are called** like in mongodb.
+##### sort() - For sorting the result in either ascending or descending order. It takes in only one object parameter 
+##### limit() - For limiting the number of records you want back. It takes in only one inter parameter(Number of record you want back). 
+##### skip() - For akipping some the number of records. It takes in only one inter parameter(Number of record you want skip). 
 
 ```js
-await Post.find().sort({id:-1}).limit(5).get() 
+await Post.find().sort({id:-1, user_name:1}).limit(5).skip(10).get() 
 await Post.find().limit(5).sort({id:-1}).get() 
-await Post.find().limit(5)skip(3).get() 
+await Post.find().limit(5).skip(3).get() 
 //the result for the above are the same
 ```
 
@@ -268,19 +275,21 @@ This takes in two optonal parameter,
 - Second parameter is attribute you don't want to appear in the result.
 
 This method has .get() at the end. This returns the data together with some metedata, call the get at the end
+**page()** - The page you want the data for. It takes in an interger(page you want the data for).
+**perPage()** - The perPage for passing the number records you want page. It takes in an interger(the number records you want perPage).
 ```js
 await Post.paginate().get()
 await Post.paginate({}).get()
-//defaults to page 1 and count of 12
+//defaults to page 1 and perPage of 12
 
 await Post.paginate().page(2).get() 
-//returns page 2 and count of 12
+//returns page 2 and perPage of 12
 
-await Post.paginate().page(2).count(5).get()
-//returns page 2 and count of 5 
+await Post.paginate().page(2).perPage(5).get()
+//returns page 2 and perPage of 5 
 
-await Post.paginate({age:10}, {title:false}).page(2).count(5).get()
-//returns page 2 and count of 5 
+await Post.paginate({age:10}, {title:false}).page(2).perPage(5).get()
+//returns page 2 and perPage of 5 
 
 ```
 The result look like this.

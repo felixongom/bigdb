@@ -276,6 +276,7 @@ class Bigdb {
 
   // paginate and return data togethor with metadata
   paginate(criteria = {}, exclude = {}) {
+    this.#limit = 12;
     this.#exclude_collection = exclude;
     this.#pagination = true;
     this.#criteria = criteria;
@@ -284,7 +285,7 @@ class Bigdb {
   }
 
   // number you want per page
-  count(count = 12) {
+  perPage(count = 12) {
     this.#limit = count;
     return this;
   }
