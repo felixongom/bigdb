@@ -359,6 +359,7 @@ class Bigdb {
         return rec;
       });
     }
+    let num_records = this.#database_collection?this.#database_collection.length:0;
     //handle sorting during find()
     if (this.#sort === true) {
       this.#database_collection = this.#sortResultOfFind();
@@ -383,6 +384,7 @@ class Bigdb {
     //pagenate
     if (this.#pagination) {
       let start = (this.#page - 1) * this.#limit;
+      
       let stop = this.#page * this.#limit;
       let result = this.#database_collection.slice(start, stop);
       let has_next = stop < this.#database_collection.length;
@@ -393,6 +395,7 @@ class Bigdb {
       let prev_page = this.#page - 1 < 1 ? null : this.#page - 1;
 
       return {
+        num_records,
         page: this.#page,
         par_page: this.#limit,
         has_next,
@@ -737,7 +740,7 @@ class Bigdb {
           });
         }
       }
-      // case increament
+      // case increament by multiplying
       if (key === "$mul") {
         let collection = record["$mul"];
         for (let inner_key in collection) {
@@ -753,6 +756,26 @@ class Bigdb {
               typeof rec[record_key] === "number" &&
               typeof rec[record_key] === "number"
               ? { ...rec, [record_key]: rec[record_key] * update_value }
+              : rec;
+          });
+        }
+      }
+      // case increament adding
+      if (key === "$add") {
+        let collection = record["$add"];
+        for (let inner_key in collection) {
+          let record_key = inner_key;
+          let update_value = collection[inner_key];
+          //
+          let found = this.#findDocsById(id);
+          found && (found.updatedAt = new Date().toISOString());
+
+          //
+          this.#database_collection = this.#database_collection.map((rec) => {
+            return rec.id === id &&
+              typeof rec[record_key] === "number" &&
+              typeof rec[record_key] === "number"
+              ? { ...rec, [record_key]: rec[record_key] + update_value }
               : rec;
           });
         }

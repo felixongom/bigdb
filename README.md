@@ -295,13 +295,14 @@ await Post.paginate({age:10}, {title:false}).page(2).perPage(5).get()
 The result look like this.
 ```js
 {
+  num_records:17
   page: 1,
   par_page: 12,
-  has_next: false,
+  has_next: true,
   has_prev: false,
   next_page: 2,
   prev_page: null,
-  num_pages: 1,
+  num_pages: 2,
   result: [
     {
       Post: "Post1",
