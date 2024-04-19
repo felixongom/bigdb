@@ -760,26 +760,6 @@ class Bigdb {
           });
         }
       }
-      // case increament adding
-      if (key === "$add") {
-        let collection = record["$add"];
-        for (let inner_key in collection) {
-          let record_key = inner_key;
-          let update_value = collection[inner_key];
-          //
-          let found = this.#findDocsById(id);
-          found && (found.updatedAt = new Date().toISOString());
-
-          //
-          this.#database_collection = this.#database_collection.map((rec) => {
-            return rec.id === id &&
-              typeof rec[record_key] === "number" &&
-              typeof rec[record_key] === "number"
-              ? { ...rec, [record_key]: rec[record_key] + update_value }
-              : rec;
-          });
-        }
-      }
 
       // case push
       if (key === "$push") {
