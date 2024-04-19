@@ -1,12 +1,18 @@
 {
   "name": "bigdb",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "A json file database",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["bigdb", "json database", "analyse json database","file base database","similar mongodb"],
+  "keywords": [
+    "bigdb",
+    "json database",
+    "analyse json database",
+    "file base database",
+    "similar mongodb"
+  ],
   "author": "felix ongom",
   "license": "MIT",
   "type": "module",
@@ -17,4 +23,3 @@
     }
   ]
 }
-

@@ -295,7 +295,7 @@ await Post.paginate({age:10}, {title:false}).page(2).perPage(5).get()
 The result look like this.
 ```js
 {
-  num_records:17
+  num_records:17,
   page: 1,
   par_page: 12,
   has_next: true,
