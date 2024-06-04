@@ -958,10 +958,4 @@ module.exports = {
   Bigdb:(path=null, collection, many=false)=>new Bigdb(path, collection, many)
 };
 
-async function add() {
-  let Posts = new Bigdb(null, 'Posts')
-  let post = await Posts.create({name:'tom'})
-  console.log(post);
-}
-add()
 
