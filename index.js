@@ -78,7 +78,7 @@ class Bigdb {
   //
   #database = {}; //the database itself
   #database_collection = []; // the collection being affected from the database
-  #incid = 0; //autoincreamting id
+  #incementid = 0; //autoincreamting id
   #input_collection; //the collection being asked by the constructor
   #criteria = {};
   #sort = false;
@@ -91,6 +91,7 @@ class Bigdb {
   #page = 1;
   #pagination = false;
   #update_many = false;
+  #error_occured = false
 
   constructor(database_path, collection_name, allow_many) {
     this.#database_path = database_path;
@@ -101,143 +102,203 @@ class Bigdb {
   //*Create**************************************************************************
   // create new record
   async create(record) {
-    await this.#getDb();
-    //craete array of record
-    if (Array.isArray(record)) {
-      for (let rec of record) {
-        this.#addTodatabaseCollection(rec);
-        console.log("&&&&&&&&&&&", record);
+    try {
+      await this.#getDb();
+      //craete array of record
+      if (Array.isArray(record)) {
+        for (let rec of record) {
+          this.#addTodatabaseCollection(rec);
+        }
+      } else {
+        // create single record
+        this.#addTodatabaseCollection(record);
       }
-    } else {
-      // create single record
-      this.#addTodatabaseCollection(record);
+      return this.#database_collection.slice(-1)[0] || null;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured = true
     }
-    return this.#database_collection.slice(-1)[0];
   }
 
   //*Update**************************************************************************
   // update by the id
   async update(id, record) {
-    await this.#getDb();
-    return this.#updateDocs(id, record);
+    try {
+      await this.#getDb();
+      return this.#updateDocs(id, record);
+    } catch (error) {
+      console.log(error);
+      this.#error_occured = true
+    }
   }
 
   //update many given the criteria
   async findOneAndUpdate(criteria, record) {
-    await this.#getDb();
-    let found_result = this.#matchOverallCriteria(criteria)[0];
-    let updated;
-    // update each one of it;
-    if (found_result) {
-      updated = this.#updateDocs(found_result.id, record);
+    try {
+      await this.#getDb();
+      let found_result = this.#matchOverallCriteria(criteria)[0];
+      let updated;
+      // update each one of it;
+      if (found_result) {
+        updated = this.#updateDocs(found_result.id, record);
+      }
+      this.#update_many === false && this.#save(false);
+      return updated || null;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
     }
-
-    this.#update_many === false && this.#save(false);
-    return updated;
   }
 
   //update many given the criteria
   async findAndUpdate(criteria, record) {
-    await this.#getDb();
-    this.#update_many === true;
-    let found_result = this.#matchOverallCriteria(criteria);
-    // update each one of it;
-    if (found_result.length > 0) {
-      for (let one_found of found_result) {
-        this.#updateDocs(one_found.id, record);
+    try {
+      await this.#getDb();
+      this.#update_many === true;
+      let found_result = this.#matchOverallCriteria(criteria);
+      // update each one of it;
+      if (found_result.length > 0) {
+        for (let one_found of found_result) {
+          this.#updateDocs(one_found.id, record);
+        }
       }
+      this.#save(false);
+      return true;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
     }
-    this.#save(false);
-    return true;
   }
 
   //*Delete**************************************************************************
   // delet a record by id
   async delete(id) {
-    await this.#getDb();
-    let deleted = true;
-    if (Array.isArray(id)) {
-      // if it is array of ids, [1,2,3]
-      for (let i of id) {
+    try {
+      await this.#getDb();
+      let deleted = true;
+      if (Array.isArray(id)) {
+        // if it is array of ids, [1,2,3]
+        for (let i of id) {
+          this.#database_collection = this.#database_collection.filter(
+            (rec) => rec.id !== i
+          );
+        }
+      } else {
+        deleted = this.#findDocsById(id);
         this.#database_collection = this.#database_collection.filter(
-          (rec) => rec.id !== i
+          (rec) => rec.id !== id
         );
       }
-    } else {
-      deleted = this.#findDocsById(id);
-      this.#database_collection = this.#database_collection.filter(
-        (rec) => rec.id !== id
-      );
+      //
+      this.#save(false);
+      return deleted || null;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
     }
-    //
-    this.#save(false);
-    return deleted;
   }
 
   // delete one by criteria
   async findOneAndDelete(criteria) {
-    await this.#getDb();
-    let found = this.#matchOverallCriteria(criteria)[0];
-    if (found) {
-      this.#database_collection = this.#database_collection.filter(
-        (rec) => rec.id !== found.id
-      );
+    try {
+      await this.#getDb();
+      let found = this.#matchOverallCriteria(criteria)[0];
+      if (found) {
+        this.#database_collection = this.#database_collection.filter(
+          (rec) => rec.id !== found.id
+        );
+      }
+      this.#save(false);
+      return found || null;
+      
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
     }
-    this.#save(false);
-    return found || {};
   }
 
   // delete many by criteria
   async findAndDelete(criteria) {
-    await this.#getDb();
-    let found = this.#matchOverallCriteria(criteria);
-    if (found) {
-      for (let one_found of found) {
-        this.#database_collection = this.#database_collection.filter(
-          (rec) => rec.id !== one_found.id
-        );
+    try {
+      await this.#getDb();
+      let found = this.#matchOverallCriteria(criteria);
+      if (found) {
+        for (let one_found of found) {
+          this.#database_collection = this.#database_collection.filter(
+            (rec) => rec.id !== one_found.id
+          );
+        }
       }
+      this.#save(false);
+      return true;
+      
+    } catch (error) {
+      console.log(error);
+      this.#error_occured = true
     }
-    this.#save(false);
-    return true;
   }
 
   //*Last**************************************************************************
   //finding last that #matchOverallCriteria critria
   async last(criteria = {}) {
-    await this.#getDb();
-    return this.#matchOverallCriteria(criteria).slice(-1)[0];
+    try {
+      await this.#getDb();
+      return this.#matchOverallCriteria(criteria).slice(-1)[0];
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
+    }
   }
 
   //*Find**************************************************************************
   // find by id
   async findById(id) {
-    await this.#getDb();
-    return this.#database_collection.find((rec) => rec.id === id) || {};
+    try {
+      await this.#getDb();
+      return this.#database_collection.find((rec) => rec.id === id) || null;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured = true
+    }
   }
 
   find(criteria = {}, exclude = {}) {
-    this.#exclude_collection = exclude;
-    //
-    if (!this.#hasProperty(criteria)) return this;
-    this.#criteria = criteria;
-    return this;
+    try {
+      this.#exclude_collection = exclude;
+      //
+      if (!this.#hasProperty(criteria)) return this;
+      this.#criteria = criteria;
+      return this || null;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
+    }
   }
   //*FindOne**************************************************************************
   //returns the first mach of the criteria
   async findOne(criteria = {}) {
-    await this.#getDb();
-    if (!this.#hasProperty(criteria)) {
-      return {};
+    try {
+      await this.#getDb();
+      if (!this.#hasProperty(criteria)) {
+        return null;
+      }
+      return this.#matchOverallCriteria(criteria)[0] || null;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
     }
-    return this.#matchOverallCriteria(criteria)[0];
   }
 
   //*countDocuments**************************************************************************
   //counting documnt that meets the criteria pased
   async countDocuments(criteria = {}) {
-    await this.#getDb();
-    return this.#matchOverallCriteria(criteria).length;
+    try {
+      await this.#getDb();
+      return this.#matchOverallCriteria(criteria).length;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
+    }
   }
 
   //*******************************************************************************************
@@ -246,7 +307,7 @@ class Bigdb {
 
   #addTodatabaseCollection(record) {
     if (!this.#hasProperty(record)) return;
-    record.id = this.#incid + 1;
+    record.id = this.#incementid + 1;
     //
     record.createdAt = new Date().toISOString();
     record.updatedAt = new Date().toISOString();
@@ -346,67 +407,73 @@ class Bigdb {
   }
   // getting the result , called wen chaining mathod
   async get() {
-    await this.#getDb(
-      this.#database_path,
-      this.#collection_name,
-      this.#allow_many
-    );
-    this.#database_collection = this.#matchOverallCriteria(this.#criteria);
-    //removing unwanted collections
-    for (let collection in this.#exclude_collection) {
-      this.#database_collection.map((rec) => {
-        !this.#exclude_collection[collection] && delete rec[collection];
-        return rec;
-      });
-    }
-    let num_records = this.#database_collection?this.#database_collection.length:0;
-    //handle sorting during find()
-    if (this.#sort === true) {
-      this.#database_collection = this.#sortResultOfFind();
-    }
-
-    //handle skipping
-    if (this.#allow_skip) {
-      let length = this.#database_collection.length;
-      this.#database_collection = this.#database_collection.slice(
-        this.#skipby,
-        length
+    try {
+      await this.#getDb(
+        this.#database_path,
+        this.#collection_name,
+        this.#allow_many
       );
-    }
-    //handle limiting
-    if (this.#allow_limit) {
-      this.#database_collection = this.#database_collection.slice(
-        0,
-        this.#limit
-      );
-    }
-
-    //pagenate
-    if (this.#pagination) {
-      let start = (this.#page - 1) * this.#limit;
+      this.#database_collection = this.#matchOverallCriteria(this.#criteria);
+      //removing unwanted collections
+      for (let collection in this.#exclude_collection) {
+        this.#database_collection.map((rec) => {
+          !this.#exclude_collection[collection] && delete rec[collection];
+          return rec;
+        });
+      }
+      let num_records = this.#database_collection?this.#database_collection.length:0;
+      //handle sorting during find()
+      if (this.#sort === true) {
+        this.#database_collection = this.#sortResultOfFind();
+      }
+  
+      //handle skipping
+      if (this.#allow_skip) {
+        let length = this.#database_collection.length;
+        this.#database_collection = this.#database_collection.slice(
+          this.#skipby,
+          length
+        );
+      }
+      //handle limiting
+      if (this.#allow_limit) {
+        this.#database_collection = this.#database_collection.slice(
+          0,
+          this.#limit
+        );
+      }
+  
+      //pagenate
+      if (this.#pagination) {
+        let start = (this.#page - 1) * this.#limit;
+        
+        let stop = this.#page * this.#limit;
+        let result = this.#database_collection.slice(start, stop);
+        let has_next = stop < this.#database_collection.length;
+        let has_prev = (this.#page - 1) * this.#limit > 1;
+        let num_pages = Math.ceil(this.#database_collection.length / this.#limit);
+        let next_page =
+          this.#database_collection.length > stop ? this.#page + 1 : null;
+        let prev_page = this.#page - 1 < 1 ? null : this.#page - 1;
+  
+        return {
+          num_records,
+          page: this.#page,
+          par_page: this.#limit,
+          has_next,
+          has_prev,
+          result,
+          next_page,
+          prev_page,
+          num_pages,
+        } || null;
+      } else {
+        return this.#database_collection || null;
+      }
       
-      let stop = this.#page * this.#limit;
-      let result = this.#database_collection.slice(start, stop);
-      let has_next = stop < this.#database_collection.length;
-      let has_prev = (this.#page - 1) * this.#limit > 1;
-      let num_pages = Math.ceil(this.#database_collection.length / this.#limit);
-      let next_page =
-        this.#database_collection.length > stop ? this.#page + 1 : null;
-      let prev_page = this.#page - 1 < 1 ? null : this.#page - 1;
-
-      return {
-        num_records,
-        page: this.#page,
-        par_page: this.#limit,
-        has_next,
-        has_prev,
-        result,
-        next_page,
-        prev_page,
-        num_pages,
-      };
-    } else {
-      return this.#database_collection;
+    } catch (error) {
+      console.log(error);
+      this.#error_occured =true
     }
   }
 
@@ -474,7 +541,7 @@ class Bigdb {
         );
       }
       //does not
-      if ($query_key === "$hasNo") {
+      if ($query_key === "$hasNo" || $query_key === "$hasno") {
         result_found = result_found.filter(
           (rec) =>
             !rec[crit_key].toLowerCase().includes(query_value.toLowerCase())
@@ -537,7 +604,6 @@ class Bigdb {
 
       // in operator
       if ($query_key === "$in") {
-        console.log(1234, 566);
         result_found = result_found.filter(
           (rec) =>
             Array.isArray(rec[crit_key]) && rec[crit_key].includes(query_value)
@@ -641,8 +707,8 @@ class Bigdb {
           } else if (query_value.charAt(0) === "%") {
             //matches at the start
             let value = query_value.replace("%", "").trim();
-            let sliced = rec[crit_key].slice(0, value.length - 1).toLowerCase();
-            return sliced === value.toLowerCase();
+            // let sliced = rec[crit_key].slice(0, value.length - 1).toLowerCase();
+            return rec[crit_key].startsWith(value.toLowerCase());
           } else if (query_value.slice(-1) === "%") {
             //matches at the end
             let value = query_value.replace("%", "").toLowerCase().trim();
@@ -671,7 +737,6 @@ class Bigdb {
         });
       } else {
         found_result = found_result.filter((rec) => {
-          console.log(rec[crit].toLowerCase());
           return rec[crit] && rec[crit] === criteria[crit];
         });
       }
@@ -721,7 +786,7 @@ class Bigdb {
     //  let k = {$push:{price:2}}
     if (key.includes("$")) {
       //checking for each case
-      // case increament
+      // case of increament
       if (key === "$inc") {
         let collection = record["$inc"];
         for (let inner_key in collection) {
@@ -837,11 +902,19 @@ class Bigdb {
   }
   // #save method that write to database
   #save(inc) {
-    this.#database[this.#input_collection] = this.#database_collection;
-    this.#database["_" + this.#input_collection] =
-      this.#incid + (inc === true ? 1 : 0);
-    writeObjectToJsonStream(this.#writable_file, this.#database);
-    this.#incid = this.#incid + (inc === true ? 1 : 0);
+    try {
+      if(!this.#error_occured){
+        this.#database[this.#input_collection] = this.#database_collection;
+        this.#database["_" + this.#input_collection] =
+        this.#incementid + (inc === true ? 1 : 0);
+        writeObjectToJsonStream(this.#writable_file, this.#database);
+        this.#incementid = this.#incementid + (inc === true ? 1 : 0);
+      }
+      
+    } catch (error) {
+      console.log(error);
+      this.#error_occured = true
+    }
   }
   //getting the database data
   async #getDb() {
@@ -873,15 +946,22 @@ class Bigdb {
       this.#database = await readLargeJsonStream(database_file);
       this.#input_collection = this.#collection_name;
       this.#database_collection = this.#database[this.#collection_name];
-      this.#incid = this.#database["_" + this.#collection_name] || this.#incid;
+      this.#incementid = this.#database["_" + this.#collection_name] || this.#incementid;
       this.#writable_file = database_file;
     } catch (error) {
       console.log(error);
     }
   }
 }
-
 //
 module.exports = {
   Bigdb:(path=null, collection, many=false)=>new Bigdb(path, collection, many)
 };
+
+async function add() {
+  let Posts = new Bigdb(null, 'Posts')
+  let post = await Posts.create({name:'tom'})
+  console.log(post);
+}
+add()
+
