@@ -431,7 +431,7 @@ await user.find({$or:[{id:1}, {id:{$gte:10}, lastname:'doe'}]}).get()
 await food.find({$or:[{name:'pizze', price:{$lt:20}}]}).get()
 //foods whose name is pizza or price is less than 20
 ```
-
+  
 ***$and***
 ```js
 await user.find({$and:{firstname:'tom', lastname:{$has:'jo'}}}).get()
