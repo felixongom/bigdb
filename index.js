@@ -8,7 +8,7 @@ const mkdir = (folder) => {
     fs.mkdir(folder, (err) => {});
   }
   return folder;
-};
+}
 //
 
 const mkDir = (upload_path) => {
@@ -456,7 +456,7 @@ class Bigdb {
           this.#database_collection.length > stop ? this.#page + 1 : null;
         let prev_page = this.#page - 1 < 1 ? null : this.#page - 1;
   
-        return {
+        let result_data = result.length>0? {
           num_records,
           page: this.#page,
           par_page: this.#limit,
@@ -466,9 +466,10 @@ class Bigdb {
           next_page,
           prev_page,
           num_pages,
-        } || null;
+        }:null
+        return result_data
       } else {
-        return this.#database_collection || null;
+        return this.#database_collection.length>0?this.#database_collection: null;
       }
       
     } catch (error) {
@@ -486,20 +487,17 @@ class Bigdb {
     let key = Object.keys(criteria)[0];
     let result_found = [];
     let result_found_id = [];
-
+    // 
     if (key === "$and") {
-      //case $and
       for (let crit in criteria[key]) {
         result_found = this.#matchAllCriteria(criteria["$and"]);
       }
       return result_found;
-    } else if (key === "$or") {
-      // case $or
-      for (let crit in criteria[key]) {
-        let single_criteria = {};
-        single_criteria[crit] = criteria[key][crit];
-        let results = this.#matchAllCriteria(single_criteria);
-        //looping to push to the result founfd with check
+    } else if (key === "$or") {// case $or
+      //getting the individual 
+      for(let i=0; i<criteria[key].length; i++){
+        let results = this.#matchAllCriteria(criteria[key][i]);
+        //looping to push to the result found with check
         for (let result of results) {
           if (!result_found_id.includes(result.id)) {
             result_found.push(result);
@@ -520,7 +518,9 @@ class Bigdb {
       //handles objects without $
       if (typeof criteria[crit] !== "object") {
         plain_criteria[crit] = criteria[crit];
-        $criteria = criteria[crit];
+        // $criteria = criteria[crit];
+        // console.log('&&&&next', $criteria, criteria);
+
       } else {
         //handles objects with $
         $criteria[crit] = criteria[crit];
@@ -953,9 +953,16 @@ class Bigdb {
     }
   }
 }
-//
+
 module.exports = {
   Bigdb:(path=null, collection, many=false)=>new Bigdb(path, collection, many)
 };
 
-
+async function get() {
+  let Users = new Bigdb(null, 'Users')
+  let oldcrit ={fname:'peter', lname:'doe'}
+  let newcrit =[{id:1}, {id:{$lte:3}, lname:'doe'}]
+  let res = await Users.find({$or:newcrit}).get()
+  console.log(res);
+}
+get()

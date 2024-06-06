@@ -425,10 +425,10 @@ await food.find({prices:{$all:[5, 10]}}).get()
 
 ***$or***
 ```js
-await user.find({$or:{firstname:'tom', lastname:{$has:'jo'}}}).get()
+await user.find({$or:[{id:1}, {id:{$gte:10}, lastname:'doe'}]}).get()
 //users whose firstname is tom or lastname has jo in it
 
-await food.find({$or:{name:'pizze', price:{$lt:20}}}).get()
+await food.find({$or:[{name:'pizze', price:{$lt:20}}]}).get()
 //foods whose name is pizza or price is less than 20
 ```
 
