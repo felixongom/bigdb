@@ -958,11 +958,3 @@ module.exports = {
   Bigdb:(path=null, collection, many=false)=>new Bigdb(path, collection, many)
 };
 
-async function get() {
-  let Users = new Bigdb(null, 'Users')
-  let oldcrit ={fname:'peter', lname:'doe'}
-  let newcrit =[{id:1}, {id:{$lte:3}, lname:'doe'}]
-  let res = await Users.find({$or:newcrit}).get()
-  console.log(res);
-}
-get()
