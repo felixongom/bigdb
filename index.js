@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
+const _ = require('lodash')
 
 // make directory
 const mkdir = (folder) => {
@@ -33,7 +34,7 @@ function writeObjectToJsonStream(filePath, jsonObject) {
   writeStream.write(JSON.stringify(jsonObject, null, 2));
   writeStream.end();
   writeStream.on("error", (error) => {
-    console.error("Error writing to JSON stream:", error);
+    console.error("***** Error writing to JSON stream: ****", error);
   });
 }
 
@@ -57,8 +58,8 @@ function readLargeJsonStream(filePath) {
         const jsonObject = JSON.parse(jsonData);
         resolve(jsonObject);
       } catch (error) {
-        console.log(error);
-        reject(error);
+        // console.log(error);
+        reject('');
       }
     });
 
@@ -106,9 +107,9 @@ class Bigdb {
       await this.#getDb();
       //craete array of record
       if (Array.isArray(record)) {
-        for (let rec of record) {
+        _.forEach(record, (rec)=>{
           this.#addTodatabaseCollection(rec);
-        }
+        })
       } else {
         // create single record
         this.#addTodatabaseCollection(record);
@@ -142,7 +143,9 @@ class Bigdb {
       if (found_result) {
         updated = this.#updateDocs(found_result.id, record);
       }
-      this.#update_many === false && this.#save(false);
+      // this.#update_many === false && this.#save(false);
+      this.#save(true);
+
       return updated || null;
     } catch (error) {
       console.log(error);
@@ -166,7 +169,7 @@ class Bigdb {
       return true;
     } catch (error) {
       console.log(error);
-      this.#error_occured =true
+      this.#error_occured = true
     }
   }
 
@@ -177,15 +180,14 @@ class Bigdb {
       await this.#getDb();
       let deleted = true;
       if (Array.isArray(id)) {
-        // if it is array of ids, [1,2,3]
         for (let i of id) {
-          this.#database_collection = this.#database_collection.filter(
+          this.#database_collection = _.filter(this.#database_collection,
             (rec) => rec.id !== i
           );
         }
       } else {
         deleted = this.#findDocsById(id);
-        this.#database_collection = this.#database_collection.filter(
+        this.#database_collection = _.filter(this.#database_collection,
           (rec) => rec.id !== id
         );
       }
@@ -204,7 +206,7 @@ class Bigdb {
       await this.#getDb();
       let found = this.#matchOverallCriteria(criteria)[0];
       if (found) {
-        this.#database_collection = this.#database_collection.filter(
+        this.#database_collection = _.filter(this.#database_collection,
           (rec) => rec.id !== found.id
         );
       }
@@ -224,7 +226,7 @@ class Bigdb {
       let found = this.#matchOverallCriteria(criteria);
       if (found) {
         for (let one_found of found) {
-          this.#database_collection = this.#database_collection.filter(
+          this.#database_collection = _.filter(this.#database_collection,
             (rec) => rec.id !== one_found.id
           );
         }
@@ -255,7 +257,7 @@ class Bigdb {
   async findById(id) {
     try {
       await this.#getDb();
-      return this.#database_collection.find((rec) => rec.id === id) || null;
+      return _.find(this.#database_collection,(rec) => rec.id === id) || null;
     } catch (error) {
       console.log(error);
       this.#error_occured = true
@@ -416,7 +418,7 @@ class Bigdb {
       this.#database_collection = this.#matchOverallCriteria(this.#criteria);
       //removing unwanted collections
       for (let collection in this.#exclude_collection) {
-        this.#database_collection.map((rec) => {
+        _.map(this.#database_collection, (rec) => {
           !this.#exclude_collection[collection] && delete rec[collection];
           return rec;
         });
@@ -426,7 +428,6 @@ class Bigdb {
       if (this.#sort === true) {
         this.#database_collection = this.#sortResultOfFind();
       }
-  
       //handle skipping
       if (this.#allow_skip) {
         let length = this.#database_collection.length;
@@ -480,7 +481,7 @@ class Bigdb {
 
   //finding one record by id
   #findDocsById(id) {
-    return this.#database_collection.find((rec) => rec.id === id) || {};
+    return _.find(this.#database_collection, (rec) => rec.id === id) || {};
   }
   //overall filtering including $and and $or
   #matchOverallCriteria(criteria) {
@@ -518,9 +519,6 @@ class Bigdb {
       //handles objects without $
       if (typeof criteria[crit] !== "object") {
         plain_criteria[crit] = criteria[crit];
-        // $criteria = criteria[crit];
-        // console.log('&&&&next', $criteria, criteria);
-
       } else {
         //handles objects with $
         $criteria[crit] = criteria[crit];
@@ -536,13 +534,13 @@ class Bigdb {
 
       // check the type of filter and run its logic of filtering
       if ($query_key === "$has") {
-        result_found = result_found.filter((rec) =>
+        result_found = _.filter( result_found, (rec) =>
           rec[crit_key].toLowerCase().includes(query_value.toLowerCase())
         );
       }
       //does not
       if ($query_key === "$hasNo" || $query_key === "$hasno") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) =>
             !rec[crit_key].toLowerCase().includes(query_value.toLowerCase())
         );
@@ -550,26 +548,26 @@ class Bigdb {
 
       // less than
       if ($query_key === "$lt") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) => rec[crit_key] < query_value
         );
       }
       // greater than
       if ($query_key === "$gt") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) => rec[crit_key] > query_value
         );
       }
 
-      // less than or equal to
+      // less than or greater than or equal to
       if ($query_key === "$gte") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) => rec[crit_key] >= query_value
         );
       }
       // greater than or equal to
       if ($query_key === "$lte") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) => rec[crit_key] <= query_value
         );
       }
@@ -581,7 +579,7 @@ class Bigdb {
             query_value[1] - 1
           );
         } else {
-          result_found = result_found.filter(
+          result_found = _.filter( result_found,
             (rec) =>
               typeof query_value[1] === "number" &&
               typeof query_value[1] === "number" &&
@@ -593,7 +591,7 @@ class Bigdb {
 
       // not between
       if ($query_key === "$nbt") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found, 
           (rec) =>
             (typeof query_value[1] === "number" &&
               typeof query_value[1] === "number" &&
@@ -604,7 +602,7 @@ class Bigdb {
 
       // in operator
       if ($query_key === "$in") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) =>
             Array.isArray(rec[crit_key]) && rec[crit_key].includes(query_value)
         );
@@ -612,36 +610,37 @@ class Bigdb {
 
       // not in operator
       if ($query_key === "$nin") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) =>
             Array.isArray(rec[crit_key]) && !rec[crit_key].includes(query_value)
         );
       }
 
       // equals to operator
+      console.log(crit_key);
       if ($query_key === "$eq") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) => rec[crit_key] === query_value
         );
       }
 
       // not equals to operator
       if ($query_key === "$neq") {
-        result_found = result_found.filter(
+        result_found = _.filter( result_found,
           (rec) => rec[crit_key] !== query_value
         );
       }
 
       // starts with operator
       if ($query_key === "$sw") {
-        result_found = result_found.filter((rec) => {
+        result_found = _.filter(result_found, (rec) => {
           let sliced = rec[crit_key].slice(0, query_value.length).toLowerCase();
           return sliced === query_value.toLowerCase();
         });
       }
       // ends with operator
       if ($query_key === "$ew") {
-        result_found = result_found.filter((rec) => {
+        result_found = _.filter(result_found, (rec) => {
           let sliced = rec[crit_key]
             .slice(
               rec[crit_key].length - query_value.length,
@@ -653,14 +652,14 @@ class Bigdb {
       }
       // not starting with operator
       if ($query_key === "$nsw") {
-        result_found = result_found.filter((rec) => {
+        result_found = _.filter(result_found, (rec) => {
           let sliced = rec[crit_key].slice(0, query_value.length).toLowerCase();
           return sliced !== query_value.toLowerCase();
         });
       }
       //not ending with operator
       if ($query_key === "$new") {
-        result_found = result_found.filter((rec) => {
+        result_found = _.filter(result_found, (rec) => {
           let sliced = rec[crit_key]
             .slice(
               rec[crit_key].length - query_value.length,
@@ -678,7 +677,7 @@ class Bigdb {
       }
       //or operator
       if ($query_key === "$nor") {
-        result_found = result_found.filter(
+        result_found = _.filter(result_found,
           (rec) =>
             !query_value
               .join()
@@ -688,14 +687,14 @@ class Bigdb {
       }
       //all operator
       if ($query_key === "$all") {
-        result_found = result_found.filter(
+        result_found = _.filter(result_found,
           (rec) => query_value.join() === rec[crit_key].join()
         );
       }
 
       //like operator
       if ($query_key === "$like") {
-        result_found = result_found.filter((rec) => {
+        result_found = _.filter(result_found, (rec) => {
           //where it matches any where
           if (
             query_value.charAt(0) === "%" &&
@@ -726,17 +725,18 @@ class Bigdb {
   // finding the record matching the creteria without nested object passed
   #matchPlainObject(criteria = {}) {
     if (!this.#hasProperty(criteria)) return this.#database_collection;
+    // 
     let found_result = [];
     let i = 0;
 
     for (let crit in criteria) {
       i++;
       if (i === 1) {
-        found_result = this.#database_collection.filter((rec) => {
+        found_result = _.filter(this.#database_collection, (rec) => {
           return rec[crit] && rec[crit] === criteria[crit];
         });
       } else {
-        found_result = found_result.filter((rec) => {
+        found_result = _.filter(found_result, (rec) => {
           return rec[crit] && rec[crit] === criteria[crit];
         });
       }
@@ -758,10 +758,10 @@ class Bigdb {
     let _elToBeRemoved = Array.isArray(elToBeRemoved)
       ? elToBeRemoved
       : [elToBeRemoved];
+    // 
     let _inputArray = inputArray;
-
     for (let remove_element of _elToBeRemoved) {
-      _inputArray = _inputArray.filter((el) => el !== remove_element);
+      _inputArray = _.filter(_inputArray, (el) => el !== remove_element);
     }
     return _inputArray;
   }
@@ -783,7 +783,6 @@ class Bigdb {
     let key = Object.keys(record)[0];
     let found = this.#findDocsById(id);
 
-    //  let k = {$push:{price:2}}
     if (key.includes("$")) {
       //checking for each case
       // case of increament
@@ -796,7 +795,7 @@ class Bigdb {
           let found = this.#findDocsById(id);
           found && (found.updatedAt = new Date().toISOString());
           //
-          this.#database_collection = this.#database_collection.map((rec) => {
+          this.#database_collection = _.map(this.#database_collection, (rec) => {
             return rec.id === id &&
               typeof rec[record_key] === "number" &&
               typeof rec[record_key] === "number"
@@ -816,7 +815,7 @@ class Bigdb {
           found && (found.updatedAt = new Date().toISOString());
 
           //
-          this.#database_collection = this.#database_collection.map((rec) => {
+          this.#database_collection = _.map(this.#database_collection, (rec) => {
             return rec.id === id &&
               typeof rec[record_key] === "number" &&
               typeof rec[record_key] === "number"
@@ -833,10 +832,9 @@ class Bigdb {
           let record_key = inner_key;
           let update_value = collection[inner_key];
           //
-
           found && (found.updatedAt = new Date().toISOString());
           //
-          this.#database_collection = this.#database_collection.map((rec) =>
+          this.#database_collection = _.map(this.#database_collection,(rec) =>
             rec.id === id && Array.isArray(found[record_key])
               ? { ...found, ...found[record_key].push(update_value) }
               : rec
@@ -853,7 +851,7 @@ class Bigdb {
           //
           found && (found.updatedAt = new Date().toISOString());
           //
-          this.#database_collection = this.#database_collection.map((rec) =>
+          this.#database_collection = _.map(this.#database_collection,(rec) =>
             rec.id === id && Array.isArray(found[record_key])
               ? {
                   ...found,
@@ -873,10 +871,9 @@ class Bigdb {
           let record_key = inner_key;
           let update_value = collection[inner_key];
           //
-
           found && (found.updatedAt = new Date().toISOString());
           //
-          this.#database_collection = this.#database_collection.map((rec) =>
+          this.#database_collection = _.map(this.#database_collection,(rec) =>
             rec.id === id && Array.isArray(found[record_key])
               ? {
                   ...found,
@@ -893,7 +890,7 @@ class Bigdb {
     //
     found && (found.updatedAt = new Date().toISOString());
     //
-    this.#database_collection = this.#database_collection.map((rec) =>
+    this.#database_collection = _.map(this.#database_collection, (rec) =>
       rec.id === id ? { ...found, ...record } : { ...rec }
     );
 
@@ -904,6 +901,7 @@ class Bigdb {
   #save(inc) {
     try {
       if(!this.#error_occured){
+        // return
         this.#database[this.#input_collection] = this.#database_collection;
         this.#database["_" + this.#input_collection] =
         this.#incementid + (inc === true ? 1 : 0);

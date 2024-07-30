@@ -30,19 +30,13 @@ const Posts = Bigdb(null, 'Posts')
 
 //OR
 
-const Post =  Bigdb('Database', 'Posts') 
-//will create Database/database.json at the root of your app
+const Post =  Bigdb('path/Database', 'Posts') 
+//will create path/Database/database.json at the root of your app
 
 //OR
 
 const Post =  Bigdb(null, 'Posts' true)
 //will create Db/Posts.json at the root of your app
-
-//OR
-
-const Post = Bigdb('/Database/folder', 'Posts') 
-//will create /Database/folder/Post.json at the root of you app
-
 
 let result = await Post.create({title:'Post title 1',body:'i am Post 1'}) //single
 let result = await Post.create([{title:'Post title 1',body:'i am Post 1'}, <...>]) //bulk
@@ -61,7 +55,6 @@ The above code will create a corresponding path at the root of your app if it do
   createdAt: '2024-01-08T09:39:09.976Z',
   updatedAt: '2024-01-08T09:39:09.976Z'
 }
-
 ```
 **Its that simple**
 
