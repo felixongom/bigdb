@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
-const _ = require('lodash')
+const _ = require('lodash');
+const { log, table } = require("console");
 
 // make directory
 const mkdir = (folder) => {
@@ -79,7 +80,7 @@ class Bigdb {
   //
   #database = {}; //the database itself
   #database_collection = []; // the collection being affected from the database
-  #incementid = 0; //autoincreamting id
+  #incrementid = 0; //autoincreamting id
   #input_collection; //the collection being asked by the constructor
   #criteria = {};
   #sort = false;
@@ -154,18 +155,21 @@ class Bigdb {
   }
 
   //update many given the criteria
-  async findAndUpdate(criteria, record) {
-    try {
+  async #findAndUpdate(criteria, record) {
+    try {      
       await this.#getDb();
-      this.#update_many === true;
-      let found_result = this.#matchOverallCriteria(criteria);
+      let found_result = await this.find(criteria).get();
+      // console.log(found_result);
+      // return
+
+      // this.#update_many === false;
       // update each one of it;
-      if (found_result.length > 0) {
-        for (let one_found of found_result) {
-          this.#updateDocs(one_found.id, record);
-        }
+      if (_.size(found_result) > 0) {
+        _.forEach(found_result, async(one_found)=>{
+          await this.update(one_found.id, record);
+        })
       }
-      this.#save(false);
+      // this.#save(false);
       return true;
     } catch (error) {
       console.log(error);
@@ -245,7 +249,7 @@ class Bigdb {
   async last(criteria = {}) {
     try {
       await this.#getDb();
-      return this.#matchOverallCriteria(criteria).slice(-1)[0];
+      return _.last(this.#matchOverallCriteria(criteria).slice(-1))||null;
     } catch (error) {
       console.log(error);
       this.#error_occured =true
@@ -296,10 +300,10 @@ class Bigdb {
   async countDocuments(criteria = {}) {
     try {
       await this.#getDb();
-      return this.#matchOverallCriteria(criteria).length;
+      return _.size(this.#matchOverallCriteria(criteria));
     } catch (error) {
       console.log(error);
-      this.#error_occured =true
+      this.#error_occured = true
     }
   }
 
@@ -309,7 +313,7 @@ class Bigdb {
 
   #addTodatabaseCollection(record) {
     if (!this.#hasProperty(record)) return;
-    record.id = this.#incementid + 1;
+    record.id = this.#incrementid + 1;
     //
     record.createdAt = new Date().toISOString();
     record.updatedAt = new Date().toISOString();
@@ -358,63 +362,35 @@ class Bigdb {
     return this;
   }
   // handle sorting
-  #sortResultOfFind() {
-    if (!this.#hasProperty(this.#sort_criteria)) {
-      return this.#database_collection;
-    }
+  #sortResultOfFind(){
+    if (!this.#hasProperty(this.#sort_criteria)) return this.#database_collection
 
-    let sample = this.#database_collection[0];
     //if database collection is empty
-    if (!sample) {
-      return this.#database_collection;
-    }
-
-    //
-    for (let keys in this.#sort_criteria) {
-      let key = keys;
-      let value = this.#sort_criteria[key];
-      let collection = sample[key];
-
-      // sort
-      if (typeof collection === "number") {
-        // check order
-        if (value < 0) {
-          this.#database_collection = this.#database_collection.sort(
-            (a, b) => b[key] - a[key]
-          );
-        } else {
-          this.#database_collection = this.#database_collection.sort(
-            (a, b) => a[key] - b[key]
-          );
-        }
-      } else if (typeof collection === "string") {
-        // check order
-        if (value < 0) {
-          this.#database_collection = this.#database_collection.sort((a, b) =>
-            b[key].localeCompare(a[key])
-          );
-        } else {
-          this.#database_collection = this.#database_collection.sort((a, b) =>
-            a[key].localeCompare(b[key])
-          );
-        }
-      }
-
-      if (this.#limit) {
-        return this.#database_collection.slice(0, this.#limit);
-      } else {
-        return this.#database_collection;
-      }
-    }
+    if (!this.#database_collection[0]) return this.#database_collection
+    let order_arr = this.#orderByArray(this.#sort_criteria)
+    return _.orderBy(this.#database_collection, order_arr.keys, order_arr.values)
   }
-  // getting the result , called wen chaining mathod
+  //function for sorting with lodash
+  #orderByArray(orderByObj){
+    let orderBy_keys =  Object.keys(orderByObj)
+    let orderBy_values =  Object.values(orderByObj)
+    let new_orderBy_values = []
+    for (let value of orderBy_values){
+        if(value == 1){
+            new_orderBy_values.push('asc')
+        }else if(value == -1){
+            new_orderBy_values.push('desc')
+        }else{
+          console.log('Invalid sort value');
+          return 
+        }
+    }
+    return {keys:orderBy_keys, values:new_orderBy_values} 
+}
+  // getting the result , called when chaining mathod
   async get() {
     try {
-      await this.#getDb(
-        this.#database_path,
-        this.#collection_name,
-        this.#allow_many
-      );
+      await this.#getDb(this.#database_path,this.#collection_name,this.#allow_many);
       this.#database_collection = this.#matchOverallCriteria(this.#criteria);
       //removing unwanted collections
       for (let collection in this.#exclude_collection) {
@@ -424,10 +400,7 @@ class Bigdb {
         });
       }
       let num_records = this.#database_collection?this.#database_collection.length:0;
-      //handle sorting during find()
-      if (this.#sort === true) {
-        this.#database_collection = this.#sortResultOfFind();
-      }
+      
       //handle skipping
       if (this.#allow_skip) {
         let length = this.#database_collection.length;
@@ -435,6 +408,10 @@ class Bigdb {
           this.#skipby,
           length
         );
+      }
+      //handle sorting during find()
+      if (this.#sort === true) {
+        this.#database_collection = this.#sortResultOfFind();
       }
       //handle limiting
       if (this.#allow_limit) {
@@ -575,7 +552,7 @@ class Bigdb {
       if ($query_key === "$bt") {
         if (crit_key === "id") {
           result_found = result_found.slice(
-            query_value[0] + 1,
+            query_value[0] -1,
             query_value[1] - 1
           );
         } else {
@@ -617,7 +594,6 @@ class Bigdb {
       }
 
       // equals to operator
-      console.log(crit_key);
       if ($query_key === "$eq") {
         result_found = _.filter( result_found,
           (rec) => rec[crit_key] === query_value
@@ -894,7 +870,9 @@ class Bigdb {
       rec.id === id ? { ...found, ...record } : { ...rec }
     );
 
-    this.#update_many === false && this.#save(false);
+    if(this.#update_many === false) return this.#save(false);
+    // console.log(this.#update_many);
+    
     return this.#findDocsById(id);
   }
   // #save method that write to database
@@ -904,9 +882,9 @@ class Bigdb {
         // return
         this.#database[this.#input_collection] = this.#database_collection;
         this.#database["_" + this.#input_collection] =
-        this.#incementid + (inc === true ? 1 : 0);
+        this.#incrementid + (inc === true ? 1 : 0);
         writeObjectToJsonStream(this.#writable_file, this.#database);
-        this.#incementid = this.#incementid + (inc === true ? 1 : 0);
+        this.#incrementid = this.#incrementid + (inc === true ? 1 : 0);
       }
       
     } catch (error) {
@@ -944,7 +922,7 @@ class Bigdb {
       this.#database = await readLargeJsonStream(database_file);
       this.#input_collection = this.#collection_name;
       this.#database_collection = this.#database[this.#collection_name];
-      this.#incementid = this.#database["_" + this.#collection_name] || this.#incementid;
+      this.#incrementid = this.#database["_" + this.#collection_name] || this.#incrementid;
       this.#writable_file = database_file;
     } catch (error) {
       console.log(error);

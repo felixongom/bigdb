@@ -1,5 +1,5 @@
 ## Bigdb.
-
+##### powered by lodash
 Bigdb is a javascript backend library for reading and writing data in a json file  database.
 It store it's data locally on the server just like sqlite, but instead it store its data in a json file.
 Bigdb can read and write up to 10gb data. It can be used with any library that have access to fs module of node js.
@@ -35,7 +35,7 @@ const Post =  Bigdb('path/Database', 'Posts')
 
 //OR
 
-const Post =  Bigdb(null, 'Posts' true)
+const Post =  Bigdb(null, 'Posts', true)
 //will create Db/Posts.json at the root of your app
 
 let result = await Post.create({title:'Post title 1',body:'i am Post 1'}) //single
@@ -153,14 +153,6 @@ to 'updated title' and returns the updated document
 await Post.findOneAndUpdate({views:10}, {title:'updated title'})
 /*update the title of the first match
  to 'updated title'.
-*/
-```
-
-##### **.findAndUpdate()**
-
-```js
-await Post.findAndUpdate({views:10}, {title:'updated title'})
-/*update the title of all the matches to 'updated title'
 */
 ```
 
