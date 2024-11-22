@@ -1,6 +1,6 @@
 {
   "name": "bigdb",
-  "version": "3.3.0",
+  "version": "3.5.0",
   "description": "A json file database with methods similar to mongodb methods",
   "main": "index.js",
   "scripts": {
