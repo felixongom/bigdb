@@ -137,6 +137,46 @@ await Post.find().limit(5).sort({id:-1}).get()
 await Post.find().limit(5).skip(3).get() 
 //the result for the above are the same
 ```
+### pagination
+**page()** - The page you want the data for. It takes in an interger(page you want the data for).
+**perpage()** - The perpage for passing the number records you want page. It takes in an interger(the number records you want perpage).
+```js
+await Post.find().page(2).perpage(12).get()
+//returns page 2 and perpage of 5 
+
+await Post.find({age:10}, {title:false}).page(2).perpage(12).get()
+//returns page 2 and perpage of 5 
+
+```
+The result look like this.
+```js
+{
+  num_records:17,
+  page: 1,
+  par_page: 12,
+  has_next: true,
+  has_prev: false,
+  next_page: 2,
+  prev_page: null,
+  num_pages: 2,
+  position:1 //position of the first element in the entire data
+  result: [
+    {
+      Post: "Post1",
+      id: 1,
+      createdAt: "2024-01-08T10:26:27.158Z",
+      updatedAt: "2024-01-08T10:26:27.158Z"
+    },
+    {
+      Post: "Post2",
+      id: 2,
+      createdAt: "2024-01-08T10:26:28.629Z",
+      updatedAt: "2024-01-08T10:26:28.629Z"
+    }
+    ...
+  ] 
+}
+```
 
 ##### **.update()**
 
@@ -211,7 +251,6 @@ await Post.delete(2)
 
 await Post.delete([2, 4, 5])
 // deletes document with ids of 2 ,4 ,5
-
 ```
 
 ##### **.findOneAndDelete()**
@@ -252,57 +291,6 @@ await Post.countDocuments({title:{$search:'updated'}}) //25
 /*
 counts the number of documents that matches the query
 */
-```
-
-##### **.paginate()**
-This takes in two optonal parameter,
-- First paramerter is the query.
-- Second parameter is attribute you don't want to appear in the result.
-
-This method has .get() at the end. This returns the data together with some metedata, call the get at the end
-**page()** - The page you want the data for. It takes in an interger(page you want the data for).
-**perPage()** - The perPage for passing the number records you want page. It takes in an interger(the number records you want perPage).
-```js
-await Post.paginate().get()
-await Post.paginate({}).get()
-//defaults to page 1 and perPage of 12
-
-await Post.paginate().page(2).get() 
-//returns page 2 and perPage of 12
-
-await Post.paginate().page(2).perPage(5).get()
-//returns page 2 and perPage of 5 
-
-await Post.paginate({age:10}, {title:false}).page(2).perPage(5).get()
-//returns page 2 and perPage of 5 
-
-```
-The result look like this.
-```js
-{
-  num_records:17,
-  page: 1,
-  par_page: 12,
-  has_next: true,
-  has_prev: false,
-  next_page: 2,
-  prev_page: null,
-  num_pages: 2,
-  result: [
-    {
-      Post: "Post1",
-      id: 1,
-      createdAt: "2024-01-08T10:26:27.158Z",
-      updatedAt: "2024-01-08T10:26:27.158Z"
-    },
-    {
-      Post: "Post2",
-      id: 2,
-      createdAt: "2024-01-08T10:26:28.629Z",
-      updatedAt: "2024-01-08T10:26:28.629Z"
-    }
-  ] 
-}
 ```
 
 **Some of the different ways of filtering or querying for specific kind of data are;**

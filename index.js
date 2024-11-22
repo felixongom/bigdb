@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
 const _ = require('lodash');
-const { log, table } = require("console");
 
 // make directory
 const mkdir = (folder) => {
@@ -144,32 +143,28 @@ class Bigdb {
       if (found_result) {
         updated = this.#updateDocs(found_result.id, record);
       }
-      // this.#update_many === false && this.#save(false);
+      this.#update_many === true
+      this.#update_many === false && this.#save(false);
       this.#save(true);
 
       return updated || null;
     } catch (error) {
       console.log(error);
-      this.#error_occured =true
+      this.#error_occured = true
     }
   }
 
   //update many given the criteria
-  async #findAndUpdate(criteria, record) {
+  async findAndUpdate(criteria, record) {
     try {      
       await this.#getDb();
-      let found_result = await this.find(criteria).get();
-      // console.log(found_result);
-      // return
-
-      // this.#update_many === false;
-      // update each one of it;
+      let found_result = this.#matchOverallCriteria(criteria);
       if (_.size(found_result) > 0) {
         _.forEach(found_result, async(one_found)=>{
-          await this.update(one_found.id, record);
+          await this.#updateDocs(one_found.id, record)
         })
       }
-      // this.#save(false);
+      this.#update_many === false && this.#save(false);
       return true;
     } catch (error) {
       console.log(error);
@@ -314,10 +309,8 @@ class Bigdb {
   #addTodatabaseCollection(record) {
     if (!this.#hasProperty(record)) return;
     record.id = this.#incrementid + 1;
-    //
     record.createdAt = new Date().toISOString();
     record.updatedAt = new Date().toISOString();
-    //
     this.#database_collection.push(record);
     this.#save(true);
   }
@@ -334,7 +327,7 @@ class Bigdb {
     this.#limit = limit;
     return this;
   }
-  // skipp
+  // skip
   skip(skipby = 0) {
     this.#allow_skip = true;
     this.#skipby = skipby;
@@ -342,23 +335,24 @@ class Bigdb {
   }
 
   // paginate and return data togethor with metadata
-  paginate(criteria = {}, exclude = {}) {
-    this.#limit = 12;
-    this.#exclude_collection = exclude;
-    this.#pagination = true;
-    this.#criteria = criteria;
-    // this.#database_collection = this.#matchOverallCriteria(this.#criteria);
-    return this;
-  }
+  // paginate(criteria = {}, exclude = {}) {
+  //   this.#limit = 12;
+  //   this.#exclude_collection = exclude;
+  //   this.#pagination = true;
+  //   this.#criteria = criteria;
+  //   return this;
+  // }
 
   // number you want per page
-  perPage(count = 12) {
+  perpage(count = 12) {
     this.#limit = count;
+    this.#pagination = true;
     return this;
   }
   // number you want per page
   page(page = 1) {
     this.#page = page;
+    this.#pagination = true;
     return this;
   }
   // handle sorting
@@ -409,7 +403,7 @@ class Bigdb {
           length
         );
       }
-      //handle sorting during find()
+      //handle sorting during find
       if (this.#sort === true) {
         this.#database_collection = this.#sortResultOfFind();
       }
@@ -422,18 +416,19 @@ class Bigdb {
       }
   
       //pagenate
+      
       if (this.#pagination) {
         let start = (this.#page - 1) * this.#limit;
         
         let stop = this.#page * this.#limit;
         let result = this.#database_collection.slice(start, stop);
         let has_next = stop < this.#database_collection.length;
-        let has_prev = (this.#page - 1) * this.#limit > 1;
+        let has_prev = ((this.#page - 1) * this.#limit) > 1;
         let num_pages = Math.ceil(this.#database_collection.length / this.#limit);
-        let next_page =
-          this.#database_collection.length > stop ? this.#page + 1 : null;
+        let next_page = this.#database_collection.length > stop ? this.#page + 1 : null;
         let prev_page = this.#page - 1 < 1 ? null : this.#page - 1;
-  
+        let position = (this.#page-1) * this.#limit + 1         
+        
         let result_data = result.length>0? {
           num_records,
           page: this.#page,
@@ -444,6 +439,7 @@ class Bigdb {
           next_page,
           prev_page,
           num_pages,
+          position
         }:null
         return result_data
       } else {
@@ -746,8 +742,8 @@ class Bigdb {
     let res = []
     let index = arr.findIndex(el=>el===num)
     for(let i = 0; i<arr.length; i++){
-        if (i===index) continue
-         res.push(arr[i])
+      if (i===index) continue
+      res.push(arr[i])
     }
     return res
 }
@@ -758,7 +754,7 @@ class Bigdb {
     delete record.id;
     let key = Object.keys(record)[0];
     let found = this.#findDocsById(id);
-
+    found && (found.updatedAt = new Date().toISOString());
     if (key.includes("$")) {
       //checking for each case
       // case of increament
@@ -768,16 +764,10 @@ class Bigdb {
           let record_key = inner_key;
           let update_value = collection[inner_key];
           //
-          let found = this.#findDocsById(id);
-          found && (found.updatedAt = new Date().toISOString());
-          //
-          this.#database_collection = _.map(this.#database_collection, (rec) => {
-            return rec.id === id &&
-              typeof rec[record_key] === "number" &&
-              typeof rec[record_key] === "number"
-              ? { ...rec, [record_key]: rec[record_key] + update_value }
-              : rec;
-          });
+          let index = _.findIndex(this.#database_collection, (rec) => rec.id === id && typeof rec[record_key] === "number");
+          found = index >=0 && { ...found, [record_key] : found[record_key] + update_value }
+          // reasigning the updated record
+          index >= 0 && ( this.#database_collection[index] = found )
         }
       }
       // case increament by multiplying
@@ -787,17 +777,10 @@ class Bigdb {
           let record_key = inner_key;
           let update_value = collection[inner_key];
           //
-          let found = this.#findDocsById(id);
-          found && (found.updatedAt = new Date().toISOString());
-
-          //
-          this.#database_collection = _.map(this.#database_collection, (rec) => {
-            return rec.id === id &&
-              typeof rec[record_key] === "number" &&
-              typeof rec[record_key] === "number"
-              ? { ...rec, [record_key]: rec[record_key] * update_value }
-              : rec;
-          });
+          let index = _.findIndex(this.#database_collection, (rec) => rec.id === id && typeof rec[record_key] === "number");
+          found = index >=0 && { ...found, [record_key] : found[record_key] * update_value }
+          // reasigning the updated record
+          index >= 0 && ( this.#database_collection[index] = found )
         }
       }
 
@@ -808,13 +791,10 @@ class Bigdb {
           let record_key = inner_key;
           let update_value = collection[inner_key];
           //
-          found && (found.updatedAt = new Date().toISOString());
-          //
-          this.#database_collection = _.map(this.#database_collection,(rec) =>
-            rec.id === id && Array.isArray(found[record_key])
-              ? { ...found, ...found[record_key].push(update_value) }
-              : rec
-          );
+          let index = _.findIndex(this.#database_collection, (rec) => rec.id === id && Array.isArray(rec[record_key]));
+          found = index >=0 && { ...found, ...found[record_key].push(update_value) }
+          // reasigning the updated record
+          index >= 0 && ( this.#database_collection[index] = found ) 
         }
       }
 
@@ -825,19 +805,10 @@ class Bigdb {
           let record_key = inner_key;
           let update_value = collection[inner_key];
           //
-          found && (found.updatedAt = new Date().toISOString());
-          //
-          this.#database_collection = _.map(this.#database_collection,(rec) =>
-            rec.id === id && Array.isArray(found[record_key])
-              ? {
-                  ...found,
-                  [record_key]: this.#pull(
-                    rec[record_key],
-                    update_value
-                  ),
-                }
-              : rec
-          );
+          let index = _.findIndex(this.#database_collection, (rec) => rec.id === id && Array.isArray(rec[record_key]));
+          found = index >=0 && { ...found, [record_key]: this.#pull( found[record_key], update_value) }
+          // reasigning the updated record
+          index >= 0 && ( this.#database_collection[index] = found ) 
         }
       }
       //case pullAll
@@ -847,32 +818,19 @@ class Bigdb {
           let record_key = inner_key;
           let update_value = collection[inner_key];
           //
-          found && (found.updatedAt = new Date().toISOString());
-          //
-          this.#database_collection = _.map(this.#database_collection,(rec) =>
-            rec.id === id && Array.isArray(found[record_key])
-              ? {
-                  ...found,
-                  [record_key]: this.#pullAllInstance(
-                    rec[record_key],
-                    update_value
-                  ),
-                }
-              : rec
-          );
+          let index = _.findIndex(this.#database_collection, (rec) => rec.id === id && Array.isArray(rec[record_key]));
+          found = index >=0 && { ...found, [record_key]: this.#pullAllInstance( found[record_key], update_value) }
+          // reasigning the updated record
+          index >= 0 && ( this.#database_collection[index] = found ) 
+          
         }
       }
     }
     //
-    found && (found.updatedAt = new Date().toISOString());
-    //
-    this.#database_collection = _.map(this.#database_collection, (rec) =>
-      rec.id === id ? { ...found, ...record } : { ...rec }
-    );
-
-    if(this.#update_many === false) return this.#save(false);
-    // console.log(this.#update_many);
+    let index = _.findIndex(this.#database_collection, (rec) => rec.id === id );
+    found = index >=0 && { ...found, ...record }// reasigning the updated record
     
+    index >= 0 && ( this.#database_collection[index] = found )     
     return this.#findDocsById(id);
   }
   // #save method that write to database
