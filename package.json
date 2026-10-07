@@ -1,6 +1,6 @@
 {
   "name": "filedb",
-  "version": "1.2.0",
+  "version": "4.2.0",
   "description": "A dependency-free JSON-file database for Node.js with flexible collection storage, pagination metadata, transactions, indexes and queries.",
   "keywords": [
     "database",
