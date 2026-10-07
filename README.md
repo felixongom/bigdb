@@ -1,7 +1,7 @@
 # Bigdb -- Complete Documentation
 
 **Package:** `Bigdb`\
-**Documented version:** `1.2.0`\
+**Documented version:** `4.2.0`\
 **Runtime:** Node.js 18+\
 **Module formats:** CommonJS and ES modules\
 **Storage:** Local JSON files\
@@ -63,9 +63,9 @@ transactions, write coordination, and asynchronous iteration.
 
 ## Features
 
-The intended Bigdb 1.2.0 API includes:
+The intended Bigdb 4.2.0 API includes:
 
--   Independent JSON-file persistence; no dependency on `bigdb`.
+-   Independent JSON-file persistence;
 -   CommonJS and ES module entry points.
 -   One file per collection by default, or one shared database file.
 -   Single and bulk document creation.
@@ -106,7 +106,7 @@ platforms, containers, or ephemeral hosting.
 After the package has been published:
 
 ``` bash
-npm install Bigdb
+npm install bigdb
 ```
 
 ### From a local extracted package
@@ -127,7 +127,7 @@ my-app/
 From the application root:
 
 ``` bash
-npm install ./Bigdb
+npm install ./bigdb
 ```
 
 The dependency will resemble:
@@ -135,7 +135,7 @@ The dependency will resemble:
 ``` json
 {
   "dependencies": {
-    "Bigdb": "file:./Bigdb"
+    "bigdb": "file:./bigdb"
   }
 }
 ```
@@ -147,7 +147,7 @@ Change the path to match your actual folders.
 ### CommonJS
 
 ``` js
-const { Bigdb } = require('Bigdb');
+const { Bigdb } = require('bigdb');
 
 const Post = Bigdb('./Database', 'Posts');
 ```
@@ -157,7 +157,7 @@ const Post = Bigdb('./Database', 'Posts');
 In a project configured with `"type": "module"`:
 
 ``` js
-import { Bigdb } from 'Bigdb';
+import { Bigdb } from 'bigdb';
 
 const Post = Bigdb('./Database', 'Posts');
 ```
@@ -165,14 +165,13 @@ const Post = Bigdb('./Database', 'Posts');
 A default factory export may also be available:
 
 ``` js
-import Bigdb from 'Bigdb';
+import Bigdb from 'bigdb';
 
-const Post = Bigdb('./Database', 'Posts');
+const Post = bigdb('./Database', 'Posts');
 ```
 
-The factory is named `Bigdb` to preserve the requested API. The npm
-package name is `Bigdb`; Bigdb is intended to work independently of
-the `bigdb` package.
+The factory is named `bigdb` to preserve the requested API. The npm
+package name is `bigdb`; bigdb is intended to work independently.
 
 ## Creating databases and collections
 
@@ -1359,7 +1358,7 @@ depending on message text.
 ### Posts collection
 
 ``` js
-const { Bigdb } = require('Bigdb');
+const { Bigdb } = require('bigdb');
 
 const Post = Bigdb('./Database', 'Posts', {
   schema: {
@@ -1415,7 +1414,7 @@ main().catch(console.error);
 ### Users with unique email addresses
 
 ``` js
-const { Bigdb } = require('Bigdb');
+const { Bigdb } = require('bigdb');
 
 const User = Bigdb('./Database', 'Users', {
   schema: {
@@ -1451,7 +1450,7 @@ main().catch(console.error);
 ### Shared-file transaction
 
 ``` js
-const { Bigdb } = require('Bigdb');
+const { Bigdb } = require('bigdb');
 
 const User = Bigdb('./Database', 'Users', true);
 const Post = Bigdb('./Database', 'Posts', true);
@@ -1505,7 +1504,7 @@ version cannot be overwritten.
 ## Migrating older data
 
 Older development builds may use a shared `database.json`. The
-documented 1.2.0 layout uses separate `<Collection>.json` files by
+documented 4.2.0 layout uses separate `<Collection>.json` files by
 default or `database.js` for shared-file mode.
 
 1.  Stop all processes that write to the database.
@@ -1565,18 +1564,18 @@ segmented files.
 
 ## Troubleshooting
 
-### `Cannot find module 'Bigdb'`
+### `Cannot find module 'bigdb'`
 
 Install from npm:
 
 ``` bash
-npm install Bigdb
+npm install bigdb
 ```
 
 Or install your local package:
 
 ``` bash
-npm install ./Bigdb
+npm install ./bigdb
 ```
 
 Restart the Node.js process after installation.
@@ -1617,7 +1616,7 @@ active.
 
 ### Records appear missing after a storage-mode change
 
-Bigdb does not automatically migrate between older shared JSON storage,
+b does not automatically migrate between older shared JSON storage,
 separate collection files, and shared `database.js`. Restore a backup or
 run a verified migration script.
 
