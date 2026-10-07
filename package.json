@@ -1,28 +1,33 @@
 {
-  "name": "bigdb",
-  "version": "3.5.0",
-  "description": "A json file database with methods similar to mongodb methods",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "name": "filedb",
+  "version": "1.2.0",
+  "description": "A dependency-free JSON-file database for Node.js with flexible collection storage, pagination metadata, transactions, indexes and queries.",
   "keywords": [
-    "bigdb",
-    "json database",
-    "analyse json database",
-    "file base database",
-    "similar mongodb"
+    "database",
+    "json",
+    "file-database",
+    "nosql",
+    "nodejs",
+    "storage",
+    "json-database"
   ],
-  "author": "felix ongom",
   "license": "MIT",
-  "type": "",
-  "funding": [
-    {
-      "type": "github",
-      "url": "https://github.com/felixongom/bigdb"
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
     }
-  ],
-  "dependencies": {
-    "lodash": "^4.17.21"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:example": "node examples/basic.mjs"
   }
 }

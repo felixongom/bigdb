@@ -1,0 +1,16 @@
+export type SortDirection = 'asc' | 'desc' | 1 | -1;
+export type Conditions = Record<string, unknown>;
+export interface SchemaRule { type?: 'any'|'string'|'number'|'integer'|'boolean'|'object'|'array'|'null'; min?: number; max?: number; minLength?: number; maxLength?: number; enum?: unknown[] }
+export interface Schema { required?: string[]; properties?: Record<string, SchemaRule>; fields?: Record<string, SchemaRule> }
+export interface FileDBOptions { schema?: Schema; lockTimeout?: number; staleLock?: number; defaultPerPage?: number }
+export interface UpdateResult<T=Document> { matchedCount:number; modifiedCount:number; documents:T[] }
+export interface DeleteResult<T=Document> { deletedCount:number; documents:T[] }
+export interface PageResult<T=Document> { num_records:number; page:number; par_page:number; has_next:boolean; has_prev:boolean; next_page:number|null; prev_page:number|null; num_pages:number; position:number; result:T[] }
+export interface Document { id:number|string; createdAt?:string; updatedAt?:string; [key:string]:unknown }
+export class Query<T extends Document=Document> { sort(field:string,direction?:SortDirection):this; sort(spec:Record<string,SortDirection>):this; limit(n:number):this; skip(n:number):this; offset(n:number):this; page(n:number):this; perpage(n:number):this; select(fields:string|string[]):this; hint(field:string):this; get():Promise<T[]|PageResult<T>>; first():Promise<T|null>; count():Promise<number>; exists():Promise<boolean>; toArray():Promise<T[]>; stream(options?:Record<string,unknown>):AsyncIterable<T> }
+export class Collection<T extends Document=Document> { readonly name:string; schema?:Schema; create(doc:Omit<T,'id'>|Partial<T>):Promise<T>; create(docs:Array<Omit<T,'id'>|Partial<T>>):Promise<T[]>; findById(id:number|string):Promise<T|null>; findById(ids:Array<number|string>):Promise<T[]>; find(c?:Conditions):Query<T>; findOne(c?:Conditions):Promise<T|null>; countDocuments(c?:Conditions):Promise<number>; update(id:number|string,changes:Partial<T>|Record<string,unknown>,options?:Record<string,unknown>):Promise<UpdateResult<T>>; update(c:Conditions,changes:Partial<T>|Record<string,unknown>,options?:Record<string,unknown>):Promise<UpdateResult<T>>; delete(id:number|string|Array<number|string>):Promise<DeleteResult<T>>; delete(c:Conditions):Promise<DeleteResult<T>>; remove(id:number|string|Conditions):Promise<DeleteResult<T>>; drop():Promise<boolean>; createIndex(field:string,options?:{unique?:boolean}):Promise<{field:string;unique:boolean}>; dropIndex(field:string):Promise<boolean>; transaction<R>(fn:(collection:Collection<T>)=>Promise<R>):Promise<R>; stream(options?:{where?:Conditions}):Promise<AsyncIterable<T>> }
+export class Transaction { collection<T extends Document=Document>(name:string,options?:FileDBOptions):any; commit():Promise<void>; rollback():void }
+export function Bigdb<T extends Document=Document>(directory:string,collectionName:string,singleFile?:boolean,options?:FileDBOptions):Collection<T>;
+export function Bigdb<T extends Document=Document>(directory:string,collectionName:string,options?:FileDBOptions):Collection<T>;
+export namespace Bigdb { function transaction<R>(directory:string,fn:(tx:Transaction)=>Promise<R>,options?:FileDBOptions):Promise<R>; }
+export default Bigdb;
