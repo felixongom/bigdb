@@ -722,7 +722,7 @@ Return types differ:
 ``` js
 const rows = await Post.find({}).limit(10).get(); // Array
 const page = await Post.find({}).page(1).perpage(10).get(); // Object
-console.log(page.result);
+console.log(page.data);
 ```
 
 ## Selecting fields
@@ -1313,7 +1313,7 @@ Intended shape:
   prev_page: null,
   num_pages: 2,
   position: 1,
-  result: [/* documents */]
+  data: [/* documents */]
 }
 ```
 
@@ -1598,7 +1598,7 @@ This is expected when `.page()` is used:
 
 ``` js
 const page = await Post.find({}).page(1).perpage(12).get();
-console.log(page.result);
+console.log(page.data);
 ```
 
 Without `.page()`, `.get()` returns an array.
