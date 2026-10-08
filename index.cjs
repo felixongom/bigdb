@@ -100,7 +100,7 @@ async function ensureDatabase(file) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   try { await fs.access(file); } catch (e) {
     if (e.code !== 'ENOENT') throw e;
-    const initial = JSON.stringify({ version: FORMAT_VERSION, collections: {}, counters: {}, indexes: {} }, null, 2) + '\n';
+    const initial = JSON.stringify({ version: FORMAT_VERSION, collections: {}, counters: {}, indexes: {} }) + '\n';
     try { await fs.writeFile(file, initial, { flag: 'wx' }); } catch (x) { if (x.code !== 'EEXIST') throw x; }
   }
 }
